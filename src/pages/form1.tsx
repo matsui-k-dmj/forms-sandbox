@@ -4,8 +4,10 @@
 
 import { usersToSelectData } from '@/common/mintine-select';
 import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
-import { ChangeEvent, useCallback, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
+import { useQuery } from '@tanstack/react-query';
+import { filterFalsy } from '@/common/filter-falsy';
 
 const allUsers: User[] = [
   { id: 1, name: '松山' },
@@ -14,7 +16,27 @@ const allUsers: User[] = [
   { id: 4, name: '千葉' },
   { id: 5, name: '五十嵐' },
   { id: 6, name: 'Boby' },
+  { id: 7, name: 'Link' },
 ];
+
+const constResponse: TaskDetail = {
+  id: 1,
+  title: 'Find Zelda',
+  user_assingned_to: { id: 7, name: 'Link' },
+  start_date: '2023-05-12',
+};
+
+const fetchConstTaskDetail = new Promise<TaskDetail>((resolve) =>
+  setTimeout(() => {
+    resolve(constResponse);
+  }, 500)
+);
+
+const fetchAllUsers = new Promise<User[]>((resolve) =>
+  setTimeout(() => {
+    resolve(allUsers);
+  }, 2000)
+);
 
 type FormData = {
   title: string;
@@ -45,7 +67,54 @@ export default function Form1() {
     endDate: [],
   });
 
-  const optionUsers = useMemo(() => usersToSelectData(allUsers), []);
+  const queryConstTaskDetail = useQuery({
+    queryKey: ['ConstTaskDetail'],
+    queryFn: () => {
+      return fetchConstTaskDetail;
+    },
+  });
+
+  // API Sync
+  useEffect(() => {
+    const d = queryConstTaskDetail.data;
+    if (d == null) return;
+    setFormData({
+      title: d.title,
+      description: d.description ?? '',
+      userIdAssingnedTo:
+        d.user_assingned_to?.id == null
+          ? null
+          : String(d.user_assingned_to?.id),
+      userIdVerifiedBy:
+        d.user_verified_by?.id == null ? null : String(d.user_verified_by?.id),
+      startDate:
+        d.start_date == null
+          ? null
+          : dayjs(d.start_date, 'YYYY-MM-DD').toDate(),
+      endDate:
+        d.end_date == null ? null : dayjs(d.end_date, 'YYYY-MM-DD').toDate(),
+    } satisfies FormData);
+  }, [queryConstTaskDetail.data]);
+
+  const queryAllUsers = useQuery({
+    queryKey: ['AllUsers'],
+    queryFn: () => {
+      return fetchAllUsers;
+    },
+  });
+
+  // allUsers がまだ取れてないときはTaskDetailの中身で初期化しとく
+  const optionUsers = useMemo(
+    () =>
+      usersToSelectData(
+        queryAllUsers.data ??
+          [
+            queryConstTaskDetail.data?.user_assingned_to,
+            queryConstTaskDetail.data?.user_verified_by,
+          ].filter(filterFalsy)
+      ),
+    [queryAllUsers.data, queryConstTaskDetail.data]
+  );
 
   const onChangeTitle = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -190,72 +259,78 @@ export default function Form1() {
   return (
     <div className="p-20">
       <div className="my-2">Edit Tasks</div>
-      <div className="my-2">
-        <TextInput
-          label="Title"
-          withAsterisk
-          error={errors.title.join(', ')}
-          value={formData.title}
-          onChange={onChangeTitle}
-        />
-      </div>
-      <div className="my-2">
-        <Textarea
-          label="Description"
-          value={formData?.description ?? undefined}
-          onChange={onChangeDescription}
-        />
-      </div>
-      <div className="my-2">
-        <Select
-          label="Assigned To"
-          data={optionUsers}
-          searchable
-          clearable
-          nothingFound="No options"
-          value={formData?.userIdAssingnedTo}
-          onChange={onChangeUserIdAssingnedTo}
-          error={errors.userIdAssingnedTo.join(', ')}
-        />
-      </div>
+      {queryConstTaskDetail.isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <div className="my-2">
+            <TextInput
+              label="Title"
+              withAsterisk
+              error={errors.title.join(', ')}
+              value={formData.title}
+              onChange={onChangeTitle}
+            />
+          </div>
+          <div className="my-2">
+            <Textarea
+              label="Description"
+              value={formData?.description ?? undefined}
+              onChange={onChangeDescription}
+            />
+          </div>
+          <div className="my-2">
+            <Select
+              label="Assigned To"
+              data={optionUsers}
+              searchable
+              clearable
+              nothingFound="No options"
+              value={formData?.userIdAssingnedTo}
+              onChange={onChangeUserIdAssingnedTo}
+              error={errors.userIdAssingnedTo.join(', ')}
+            />
+          </div>
 
-      <div className="my-2">
-        <Select
-          label="Verified By"
-          data={optionUsers}
-          searchable
-          clearable
-          nothingFound="No options"
-          value={formData?.userIdVerifiedBy}
-          onChange={onChangeUserIdVerifiedBy}
-          error={errors.userIdVerifiedBy.join(', ')}
-        />
-      </div>
-      <div className="my-2">
-        <DateInput
-          label="Start Date"
-          valueFormat="YYYY/MM/DD"
-          clearable
-          value={formData.startDate}
-          maxDate={formData.endDate ?? undefined}
-          onChange={onChangeStartDate}
-          error={errors.startDate.join(', ')}
-        />
-      </div>
-      <div className="my-2">
-        <DateInput
-          label="End Date"
-          valueFormat="YYYY/MM/DD"
-          clearable
-          value={formData.endDate}
-          minDate={formData.startDate ?? undefined}
-          onChange={onChangeEndDate}
-          error={errors.endDate.join(', ')}
-        />
-      </div>
-      <div>
-        <Button onClick={onPost}>Submit</Button>
-      </div>
+          <div className="my-2">
+            <Select
+              label="Verified By"
+              data={optionUsers}
+              searchable
+              clearable
+              nothingFound="No options"
+              value={formData?.userIdVerifiedBy}
+              onChange={onChangeUserIdVerifiedBy}
+              error={errors.userIdVerifiedBy.join(', ')}
+            />
+          </div>
+          <div className="my-2">
+            <DateInput
+              label="Start Date"
+              valueFormat="YYYY/MM/DD"
+              clearable
+              value={formData.startDate}
+              maxDate={formData.endDate ?? undefined}
+              onChange={onChangeStartDate}
+              error={errors.startDate.join(', ')}
+            />
+          </div>
+          <div className="my-2">
+            <DateInput
+              label="End Date"
+              valueFormat="YYYY/MM/DD"
+              clearable
+              value={formData.endDate}
+              minDate={formData.startDate ?? undefined}
+              onChange={onChangeEndDate}
+              error={errors.endDate.join(', ')}
+            />
+          </div>
+          <div>
+            <Button onClick={onPost}>Submit</Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
