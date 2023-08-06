@@ -3,6 +3,9 @@ import {
   Textarea as _Textarea,
   Select as _Select,
 } from '@mantine/core';
+
+import { DateInput as _DateInput } from '@mantine/dates';
+
 import { ComponentProps, memo } from 'react';
 
 export const TextInput = memo(function TextInput(
@@ -24,4 +27,11 @@ export const Select = memo(function Select(
 ) {
   console.log(`Rendering Select ${props.label}`);
   return <_Select {...props} />;
+});
+
+export const DateInput = memo(function DateInput(
+  props: ComponentProps<typeof _DateInput>
+) {
+  console.log(`Rendering DateInput ${props.label}`);
+  return <_DateInput {...props} />;
 });

@@ -1,12 +1,6 @@
 import { usersToSelectData } from '@/common/mintine-select';
-import { Select, TextInput, Textarea } from '@/lib/mantine';
-import {
-  ChangeEvent,
-  ComponentProps,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+import { Select, TextInput, Textarea, DateInput } from '@/lib/mantine';
+import { ChangeEvent, useCallback, useMemo, useState } from 'react';
 
 const allUsers: User[] = [
   { id: 1, name: '松山' },
@@ -22,8 +16,8 @@ type FormData = {
   description?: string;
   userIdAssingnedTo?: string | null;
   userIdVerifiedBy?: string | null;
-  startDate?: string; // YYYY-MM-DD
-  endDate?: string; // YYYY-MM-DD
+  startDate?: Date | null;
+  endDate?: Date | null;
 };
 
 export default function Form1() {
@@ -114,6 +108,50 @@ export default function Form1() {
     [formData.userIdAssingnedTo]
   );
 
+  const onChangeStartDate = useCallback(
+    (value: Date | null) => {
+      setFormData((prev) => ({
+        ...prev,
+        startDate: value,
+      }));
+
+      const newErros: string[] = [];
+      if (value != null && formData.endDate != null) {
+        if (formData.endDate < value) {
+          newErros.push('開始日が終了日よりも後になっています');
+        }
+      }
+      setErrors((prev) => ({
+        ...prev,
+        startDate: newErros,
+        endDate: newErros,
+      }));
+    },
+    [formData.endDate]
+  );
+
+  const onChangeEndDate = useCallback(
+    (value: Date | null) => {
+      setFormData((prev) => ({
+        ...prev,
+        endDate: value,
+      }));
+
+      const newErros: string[] = [];
+      if (value != null && formData.startDate != null) {
+        if (value < formData.startDate) {
+          newErros.push('開始日が終了日よりも後になっています');
+        }
+      }
+      setErrors((prev) => ({
+        ...prev,
+        startDate: newErros,
+        endDate: newErros,
+      }));
+    },
+    [formData.startDate]
+  );
+
   return (
     <div className="p-20">
       <div className="my-2">New Tasks</div>
@@ -156,6 +194,26 @@ export default function Form1() {
           value={formData?.userIdVerifiedBy}
           onChange={onChangeUserIdVerifiedBy}
           error={errors.userIdVerifiedBy.join(', ')}
+        />
+      </div>
+      <div className="my-2">
+        <DateInput
+          label="Start Date"
+          valueFormat="YYYY/MM/DD"
+          clearable
+          value={formData.startDate}
+          onChange={onChangeStartDate}
+          error={errors.startDate.join(', ')}
+        />
+      </div>
+      <div className="my-2">
+        <DateInput
+          label="End Date"
+          valueFormat="YYYY/MM/DD"
+          clearable
+          value={formData.endDate}
+          onChange={onChangeEndDate}
+          error={errors.endDate.join(', ')}
         />
       </div>
     </div>
