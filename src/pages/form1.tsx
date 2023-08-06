@@ -1,3 +1,7 @@
+/**
+ * useState, useEffectだけの例
+ */
+
 import { usersToSelectData } from '@/common/mintine-select';
 import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
 import { ChangeEvent, useCallback, useMemo, useState } from 'react';
@@ -14,17 +18,24 @@ const allUsers: User[] = [
 
 type FormData = {
   title: string;
-  description?: string;
-  userIdAssingnedTo?: string | null;
-  userIdVerifiedBy?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
+  description: string;
+  userIdAssingnedTo: string | null;
+  userIdVerifiedBy: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
 };
 
 type FieldErrors = Record<keyof FormData, string[]>;
 
 export default function Form1() {
-  const [formData, setFormData] = useState<FormData>({ title: '' });
+  const [formData, setFormData] = useState<FormData>({
+    title: '',
+    description: '',
+    userIdAssingnedTo: null,
+    userIdVerifiedBy: null,
+    startDate: null,
+    endDate: null,
+  });
   const [errors, setErrors] = useState<FieldErrors>({
     title: [],
     description: [],
@@ -38,7 +49,7 @@ export default function Form1() {
 
   const onChangeTitle = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      const value = e.currentTarget?.value;
+      const value = e.currentTarget.value;
       setFormData((prev) => {
         return { ...prev, title: value };
       });
@@ -50,7 +61,7 @@ export default function Form1() {
 
   const onChangeDescription = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.currentTarget?.value;
+      const value = e.currentTarget.value;
       setFormData((prev) => ({
         ...prev,
         description: value,
@@ -153,24 +164,24 @@ export default function Form1() {
       return;
     }
 
-    const payload: TaskPostPayload = {
+    const payload: TaskPatchPayload = {
       title: formData.title,
       description: formData.description,
       user_id_assingned_to:
         formData.userIdAssingnedTo == null
-          ? undefined
+          ? null
           : Number(formData.userIdAssingnedTo),
       user_id_verified_by:
         formData.userIdVerifiedBy == null
-          ? undefined
+          ? null
           : Number(formData.userIdVerifiedBy),
       start_date:
         formData.startDate == null
-          ? undefined
+          ? null
           : dayjs(formData.startDate).format('YYYY-MM-DD'),
       end_date:
         formData.endDate == null
-          ? undefined
+          ? null
           : dayjs(formData.endDate).format('YYYY-MM-DD'),
     };
     console.log('Submit', payload);
@@ -178,7 +189,7 @@ export default function Form1() {
 
   return (
     <div className="p-20">
-      <div className="my-2">New Tasks</div>
+      <div className="my-2">Edit Tasks</div>
       <div className="my-2">
         <TextInput
           label="Title"
@@ -191,7 +202,7 @@ export default function Form1() {
       <div className="my-2">
         <Textarea
           label="Description"
-          value={formData?.description}
+          value={formData?.description ?? undefined}
           onChange={onChangeDescription}
         />
       </div>
