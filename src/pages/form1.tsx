@@ -1,4 +1,5 @@
 import { TextInput, Textarea } from '@/lib/mantine';
+import { error } from 'console';
 import { ChangeEvent, useCallback, useState } from 'react';
 
 type FormData = {
@@ -27,6 +28,15 @@ export default function Form1() {
       setFormData((prev) => {
         return { ...prev, title: value };
       });
+
+      const newErros: string[] = [];
+      if (value === '') {
+        newErros.push('必須');
+      }
+      if (value.length >= 21) {
+        newErros.push('20文字以内');
+      }
+      setErrors((prev) => ({ ...prev, title: newErros }));
     },
     [setFormData]
   );
@@ -44,15 +54,17 @@ export default function Form1() {
 
   return (
     <div className="p-20">
-      <div>New Tasks</div>
-      <div>
+      <div className="my-2">New Tasks</div>
+      <div className="my-2">
         <TextInput
           label="Title"
+          withAsterisk
+          error={errors.title.join(', ')}
           value={formData.title}
           onChange={onChangeTitle}
         />
       </div>
-      <div>
+      <div className="my-2">
         <Textarea
           label="Description"
           value={formData?.description}
