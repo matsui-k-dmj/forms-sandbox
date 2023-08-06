@@ -1,5 +1,5 @@
-import { TextInput, Textarea } from '@mantine/core';
-import { useState } from 'react';
+import { TextInput, Textarea } from '@/lib/mantine';
+import { ChangeEvent, useCallback, useState } from 'react';
 
 type FormData = {
   title: string;
@@ -21,6 +21,27 @@ export default function Form1() {
     end_date: [],
   });
 
+  const onChangeTitle = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.currentTarget?.value;
+      setFormData((prev) => {
+        return { ...prev, title: value };
+      });
+    },
+    [setFormData]
+  );
+
+  const onChangeDescription = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.currentTarget?.value;
+      setFormData((prev) => ({
+        ...prev,
+        description: value,
+      }));
+    },
+    [setFormData]
+  );
+
   return (
     <div className="p-20">
       <div>New Tasks</div>
@@ -28,21 +49,14 @@ export default function Form1() {
         <TextInput
           label="Title"
           value={formData.title}
-          onChange={(e) => {
-            setFormData((prev) => ({ ...prev, title: e.currentTarget?.value }));
-          }}
+          onChange={onChangeTitle}
         />
       </div>
       <div>
         <Textarea
           label="Description"
           value={formData?.description}
-          onChange={(e) => {
-            setFormData((prev) => ({
-              ...prev,
-              description: e.currentTarget?.value,
-            }));
-          }}
+          onChange={onChangeDescription}
         />
       </div>
     </div>
