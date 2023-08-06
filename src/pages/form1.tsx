@@ -1,5 +1,4 @@
 import { TextInput, Textarea } from '@/lib/mantine';
-import { error } from 'console';
 import { ChangeEvent, useCallback, useState } from 'react';
 
 type FormData = {
