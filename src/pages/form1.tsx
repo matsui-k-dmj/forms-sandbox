@@ -27,7 +27,7 @@ export default function Form1() {
       <div>
         <TextInput
           label="Title"
-          value={formData?.title}
+          value={formData.title}
           onChange={(e) => {
             setFormData((prev) => ({ ...prev, title: e.currentTarget?.value }));
           }}
