@@ -8,35 +8,9 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { filterFalsy } from '@/common/filter-falsy';
+import { fetchAllUsers, fetchConstTaskDetail } from '@/common/stubs';
 
-const allUsers: User[] = [
-  { id: 1, name: '松山' },
-  { id: 2, name: '横田' },
-  { id: 3, name: '長谷川' },
-  { id: 4, name: '千葉' },
-  { id: 5, name: '五十嵐' },
-];
-
-const constResponse: TaskDetail = {
-  id: 1,
-  title: 'デバッグする',
-  user_assingned_to: allUsers[4],
-  start_date: '2023-05-12',
-  end_condition: 'QAの確認',
-};
-
-const fetchConstTaskDetail = new Promise<TaskDetail>((resolve) =>
-  setTimeout(() => {
-    resolve(constResponse);
-  }, 500)
-);
-
-const fetchAllUsers = new Promise<User[]>((resolve) =>
-  setTimeout(() => {
-    resolve(allUsers);
-  }, 2000)
-);
-
+// 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
   title: string;
   description: string;
@@ -69,6 +43,7 @@ export default function Form1() {
     endCondition: [],
   });
 
+  // # API Sync
   const queryConstTaskDetail = useQuery({
     queryKey: ['ConstTaskDetail'],
     queryFn: () => {
@@ -76,27 +51,9 @@ export default function Form1() {
     },
   });
 
-  // API Sync
   useEffect(() => {
-    const d = queryConstTaskDetail.data;
-    if (d == null) return;
-    setFormData({
-      title: d.title,
-      description: d.description ?? '',
-      userIdAssingnedTo:
-        d.user_assingned_to?.id == null
-          ? null
-          : String(d.user_assingned_to?.id),
-      userIdVerifiedBy:
-        d.user_verified_by?.id == null ? null : String(d.user_verified_by?.id),
-      startDate:
-        d.start_date == null
-          ? null
-          : dayjs(d.start_date, 'YYYY-MM-DD').toDate(),
-      endDate:
-        d.end_date == null ? null : dayjs(d.end_date, 'YYYY-MM-DD').toDate(),
-      endCondition: d.end_condition ?? '',
-    } satisfies FormData);
+    if (queryConstTaskDetail.data == null) return;
+    setFormData(responseToFormData(queryConstTaskDetail.data));
   }, [queryConstTaskDetail.data]);
 
   const queryAllUsers = useQuery({
@@ -119,18 +76,19 @@ export default function Form1() {
     [queryAllUsers.data, queryConstTaskDetail.data]
   );
 
-  const onChangeTitle = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const value = e.currentTarget.value;
-      setFormData((prev) => {
-        return { ...prev, title: value };
-      });
+  // # イベントハンドラ
+  // ## 個々のフォーム
+  /** タイトル */
+  const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.value;
+    setFormData((prev) => {
+      return { ...prev, title: value };
+    });
 
-      setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
-    },
-    [setFormData]
-  );
+    setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
+  }, []);
 
+  /** 説明 */
   const onChangeDescription = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.currentTarget.value;
@@ -139,9 +97,10 @@ export default function Form1() {
         description: value,
       }));
     },
-    [setFormData]
+    []
   );
 
+  /** 担当者 */
   const onChangeUserIdAssingnedTo = useCallback(
     (value: string | null) => {
       setFormData((prev) => ({
@@ -160,6 +119,7 @@ export default function Form1() {
     [formData.userIdVerifiedBy]
   );
 
+  /** 承認者 */
   const onChangeUserIdVerifiedBy = useCallback(
     (value: string | null) => {
       setFormData((prev) => ({
@@ -178,6 +138,7 @@ export default function Form1() {
     [formData.userIdAssingnedTo]
   );
 
+  /** 開始日 */
   const onChangeStartDate = useCallback(
     (value: Date | null) => {
       setFormData((prev) => ({
@@ -195,6 +156,7 @@ export default function Form1() {
     [formData.endDate]
   );
 
+  /** 終了日 */
   const onChangeEndDate = useCallback(
     (value: Date | null) => {
       setFormData((prev) => ({
@@ -213,6 +175,7 @@ export default function Form1() {
     [formData.startDate, formData.endCondition]
   );
 
+  /** 終了条件 */
   const onChangeEndCondition = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.currentTarget.value;
@@ -227,59 +190,19 @@ export default function Form1() {
         endCondition: newErrors,
       }));
     },
-    [setFormData, formData.endDate]
+    [formData.endDate]
   );
 
+  /** 保存 */
   const onPost = useCallback(() => {
-    const usersErrors = validateUsers(
-      formData.userIdAssingnedTo,
-      formData.userIdVerifiedBy
-    );
-    const dateErrors = validateDate(formData.startDate, formData.endDate);
-    const newErrors: FieldErrors = {
-      title: validateTitle(formData.title),
-      description: [],
-      userIdAssingnedTo: usersErrors,
-      userIdVerifiedBy: usersErrors,
-      startDate: dateErrors,
-      endDate: dateErrors,
-      endCondition: validateEndCondition(
-        formData.endDate,
-        formData.endCondition
-      ),
-    };
-
+    const newErrors = validateForm(formData);
     setErrors(newErrors);
-    if (
-      Object.values(newErrors)
-        .map((errors) => errors.length > 0)
-        .some((hasError) => hasError)
-    ) {
+    if (Object.values(newErrors).some((errors) => errors.length > 0)) {
+      window.alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
       return;
     }
 
-    const payload: TaskPatchPayload = {
-      title: formData.title,
-      description: formData.description || null,
-      user_id_assingned_to:
-        formData.userIdAssingnedTo == null
-          ? null
-          : Number(formData.userIdAssingnedTo),
-      user_id_verified_by:
-        formData.userIdVerifiedBy == null
-          ? null
-          : Number(formData.userIdVerifiedBy),
-      start_date:
-        formData.startDate == null
-          ? null
-          : dayjs(formData.startDate).format('YYYY-MM-DD'),
-      end_date:
-        formData.endDate == null
-          ? null
-          : dayjs(formData.endDate).format('YYYY-MM-DD'),
-      end_condition: formData.endCondition || null,
-    };
-
+    const payload = formDataToPayload(formData);
     window.alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
   }, [formData]);
 
@@ -373,6 +296,77 @@ export default function Form1() {
   );
 }
 
+// # API との変換
+
+function responseToFormData(response: TaskDetail): FormData {
+  return {
+    title: response.title,
+    description: response.description ?? '',
+    userIdAssingnedTo:
+      response.user_assingned_to?.id == null
+        ? null
+        : String(response.user_assingned_to?.id),
+    userIdVerifiedBy:
+      response.user_verified_by?.id == null
+        ? null
+        : String(response.user_verified_by?.id),
+    startDate:
+      response.start_date == null
+        ? null
+        : dayjs(response.start_date, 'YYYY-MM-DD').toDate(),
+    endDate:
+      response.end_date == null
+        ? null
+        : dayjs(response.end_date, 'YYYY-MM-DD').toDate(),
+    endCondition: response.end_condition ?? '',
+  };
+}
+
+function formDataToPayload(formData: FormData): TaskPatchPayload {
+  return {
+    title: formData.title,
+    description: formData.description || null,
+    user_id_assingned_to:
+      formData.userIdAssingnedTo == null
+        ? null
+        : Number(formData.userIdAssingnedTo),
+    user_id_verified_by:
+      formData.userIdVerifiedBy == null
+        ? null
+        : Number(formData.userIdVerifiedBy),
+    start_date:
+      formData.startDate == null
+        ? null
+        : dayjs(formData.startDate).format('YYYY-MM-DD'),
+    end_date:
+      formData.endDate == null
+        ? null
+        : dayjs(formData.endDate).format('YYYY-MM-DD'),
+    end_condition: formData.endCondition || null,
+  };
+}
+
+// # バリデーション
+/** フォーム全体のバリデーション */
+function validateForm(formData: FormData): FieldErrors {
+  const usersErrors = validateUsers(
+    formData.userIdAssingnedTo,
+    formData.userIdVerifiedBy
+  );
+  const dateErrors = validateDate(formData.startDate, formData.endDate);
+  const newErrors: FieldErrors = {
+    title: validateTitle(formData.title),
+    description: [],
+    userIdAssingnedTo: usersErrors,
+    userIdVerifiedBy: usersErrors,
+    startDate: dateErrors,
+    endDate: dateErrors,
+    endCondition: validateEndCondition(formData.endDate, formData.endCondition),
+  };
+  return newErrors;
+}
+
+/** タイトル */
 function validateTitle(value: string) {
   const newErrors: string[] = [];
   if (value === '') {
@@ -384,6 +378,7 @@ function validateTitle(value: string) {
   return newErrors;
 }
 
+/** 担当者, 承認者 */
 function validateUsers(
   userIdAssingnedTo?: string | null,
   userIdVerifiedBy?: string | null
@@ -397,6 +392,7 @@ function validateUsers(
   return newErrors;
 }
 
+/** 開始日, 終了日 */
 function validateDate(startDate?: Date | null, endDate?: Date | null) {
   const newErrors: string[] = [];
   if (startDate != null && endDate != null) {
@@ -407,6 +403,7 @@ function validateDate(startDate?: Date | null, endDate?: Date | null) {
   return newErrors;
 }
 
+/** 終了条件 */
 function validateEndCondition(
   endDate: FormData['endDate'],
   endCondition: FormData['endCondition']
