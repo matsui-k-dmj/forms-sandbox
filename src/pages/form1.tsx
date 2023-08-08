@@ -285,14 +285,14 @@ export default function Form1() {
 
   return (
     <div className="p-20">
-      <div className="my-2">Edit Tasks</div>
+      <div className="my-2">タスク編集</div>
       {queryConstTaskDetail.isLoading ? (
         <div>Loading...</div>
       ) : (
         <>
           <div className="my-2">
             <TextInput
-              label="Title"
+              label="タイトル"
               withAsterisk
               error={errors.title.join(', ')}
               value={formData.title}
@@ -301,14 +301,14 @@ export default function Form1() {
           </div>
           <div className="my-2">
             <Textarea
-              label="Description"
+              label="説明"
               value={formData.description}
               onChange={onChangeDescription}
             />
           </div>
           <div className="my-2">
             <Select
-              label="Assigned To"
+              label="担当者"
               data={optionUsers}
               searchable
               clearable
@@ -321,7 +321,7 @@ export default function Form1() {
 
           <div className="my-2">
             <Select
-              label="Verified By"
+              label="承認者"
               data={optionUsers}
               searchable
               clearable
@@ -333,7 +333,7 @@ export default function Form1() {
           </div>
           <div className="my-2">
             <DateInput
-              label="Start Date"
+              label="開始日"
               valueFormat="YYYY/MM/DD"
               clearable
               value={formData.startDate}
@@ -344,7 +344,7 @@ export default function Form1() {
           </div>
           <div className="my-2">
             <DateInput
-              label="End Date"
+              label="終了日"
               valueFormat="YYYY/MM/DD"
               clearable
               value={formData.endDate}
@@ -365,7 +365,7 @@ export default function Form1() {
             </div>
           )}
           <div>
-            <Button onClick={onPost}>Submit</Button>
+            <Button onClick={onPost}>保存</Button>
           </div>
         </>
       )}
