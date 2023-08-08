@@ -1,5 +1,35 @@
 /**
  * useState, useEffectだけの例
+ * 全体は re-render されるが、関係ないフィールドは re-render されない
+ *
+ * 感想
+ * 普通にわかりやすい。シンプル。
+ *
+ * タイトルのvalidationは zod とか使えばいけるけど、担当者 != 承認者, 開始 < 終了, 他のフォームの条件つきバリデーションなどは
+ * カスタムにこんな感じで書くしかないやろうな
+ *
+ * isDirty 追加するのも個々のイベントハンドラにやればいいだけやし
+ *
+ * 他のフォームを re-renderさせてもいいとして、useCallbackがなくなるだけやな。慣れたら全然楽にかけるな。
+ * dependency も別に eslint が効くから簡単に設定できる。
+ *
+ * まあ setFormData と setErrors で
+ *  setFormData((prev) => {
+ *     return { ...prev, title: value };
+ *  });
+ * こういうのいちいち書くのがだるいかも。
+ *
+ * data, error, isDirty をまとめて一つのstateにしてもいいかもな. それで
+ * (prev) => {
+ *     return { ...prev, title: value };
+ *  }
+ * を {title: value} だけ渡せばいいようにするとか
+ *
+ * useReducerで書けば, useCallbackで他のフォームデータを depencencyに 書く必要がなくなるんかな?。常に新しいのがprevに入ってくるから
+ * いや。data, error, isDirty をまとめて一つのstateにして、そのsetStateの中でやれば同じ。
+ * actionもそとで関数に分ければいいだけなんよな
+ *
+ *
  */
 
 import { usersToSelectData } from '@/common/mintine-select';
