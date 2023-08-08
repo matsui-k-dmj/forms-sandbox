@@ -15,15 +15,14 @@ const allUsers: User[] = [
   { id: 3, name: '長谷川' },
   { id: 4, name: '千葉' },
   { id: 5, name: '五十嵐' },
-  { id: 6, name: 'Boby' },
-  { id: 7, name: 'Link' },
 ];
 
 const constResponse: TaskDetail = {
   id: 1,
-  title: 'Find Zelda',
-  user_assingned_to: { id: 7, name: 'Link' },
+  title: 'デバッグする',
+  user_assingned_to: allUsers[4],
   start_date: '2023-05-12',
+  end_condition: 'QAの確認',
 };
 
 const fetchConstTaskDetail = new Promise<TaskDetail>((resolve) =>
@@ -45,6 +44,7 @@ type FormData = {
   userIdVerifiedBy: string | null;
   startDate: Date | null;
   endDate: Date | null;
+  endCondition: string;
 };
 
 type FieldErrors = Record<keyof FormData, string[]>;
@@ -57,6 +57,7 @@ export default function Form1() {
     userIdVerifiedBy: null,
     startDate: null,
     endDate: null,
+    endCondition: '',
   });
   const [errors, setErrors] = useState<FieldErrors>({
     title: [],
@@ -65,6 +66,7 @@ export default function Form1() {
     userIdVerifiedBy: [],
     startDate: [],
     endDate: [],
+    endCondition: [],
   });
 
   const queryConstTaskDetail = useQuery({
@@ -93,6 +95,7 @@ export default function Form1() {
           : dayjs(d.start_date, 'YYYY-MM-DD').toDate(),
       endDate:
         d.end_date == null ? null : dayjs(d.end_date, 'YYYY-MM-DD').toDate(),
+      endCondition: d.end_condition ?? '',
     } satisfies FormData);
   }, [queryConstTaskDetail.data]);
 
@@ -204,9 +207,27 @@ export default function Form1() {
         ...prev,
         startDate: newErrors,
         endDate: newErrors,
+        endCondition: validateEndCondition(value, formData.endCondition),
       }));
     },
-    [formData.startDate]
+    [formData.startDate, formData.endCondition]
+  );
+
+  const onChangeEndCondition = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.currentTarget.value;
+      setFormData((prev) => ({
+        ...prev,
+        endCondition: value,
+      }));
+
+      const newErrors = validateEndCondition(formData.endDate, value);
+      setErrors((prev) => ({
+        ...prev,
+        endCondition: newErrors,
+      }));
+    },
+    [setFormData, formData.endDate]
   );
 
   const onPost = useCallback(() => {
@@ -222,6 +243,10 @@ export default function Form1() {
       userIdVerifiedBy: usersErrors,
       startDate: dateErrors,
       endDate: dateErrors,
+      endCondition: validateEndCondition(
+        formData.endDate,
+        formData.endCondition
+      ),
     };
 
     setErrors(newErrors);
@@ -235,7 +260,7 @@ export default function Form1() {
 
     const payload: TaskPatchPayload = {
       title: formData.title,
-      description: formData.description,
+      description: formData.description || null,
       user_id_assingned_to:
         formData.userIdAssingnedTo == null
           ? null
@@ -252,8 +277,10 @@ export default function Form1() {
         formData.endDate == null
           ? null
           : dayjs(formData.endDate).format('YYYY-MM-DD'),
+      end_condition: formData.endCondition || null,
     };
-    console.log('Submit', payload);
+
+    window.alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
   }, [formData]);
 
   return (
@@ -275,7 +302,7 @@ export default function Form1() {
           <div className="my-2">
             <Textarea
               label="Description"
-              value={formData?.description ?? undefined}
+              value={formData.description}
               onChange={onChangeDescription}
             />
           </div>
@@ -286,7 +313,7 @@ export default function Form1() {
               searchable
               clearable
               nothingFound="No options"
-              value={formData?.userIdAssingnedTo}
+              value={formData.userIdAssingnedTo}
               onChange={onChangeUserIdAssingnedTo}
               error={errors.userIdAssingnedTo.join(', ')}
             />
@@ -299,7 +326,7 @@ export default function Form1() {
               searchable
               clearable
               nothingFound="No options"
-              value={formData?.userIdVerifiedBy}
+              value={formData.userIdVerifiedBy}
               onChange={onChangeUserIdVerifiedBy}
               error={errors.userIdVerifiedBy.join(', ')}
             />
@@ -326,6 +353,17 @@ export default function Form1() {
               error={errors.endDate.join(', ')}
             />
           </div>
+          {formData.endDate == null && (
+            <div className="my-2">
+              <Textarea
+                label="終了条件"
+                value={formData.endCondition}
+                onChange={onChangeEndCondition}
+                error={errors.endCondition.join(', ')}
+                withAsterisk={formData.endDate == null}
+              />
+            </div>
+          )}
           <div>
             <Button onClick={onPost}>Submit</Button>
           </div>
@@ -365,6 +403,17 @@ function validateDate(startDate?: Date | null, endDate?: Date | null) {
     if (endDate < startDate) {
       newErrors.push('開始日が終了日よりも後になっています');
     }
+  }
+  return newErrors;
+}
+
+function validateEndCondition(
+  endDate: FormData['endDate'],
+  endCondition: FormData['endCondition']
+) {
+  const newErrors: string[] = [];
+  if (endDate == null && endCondition === '') {
+    newErrors.push('終了日が未定の場合は終了条件が必要です。');
   }
   return newErrors;
 }

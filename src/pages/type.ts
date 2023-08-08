@@ -6,6 +6,7 @@ type TaskDetail = {
   user_verified_by?: User;
   start_date?: string; // YYYY-MM-DD
   end_date?: string; // YYYY-MM-DD
+  end_condition?: string;
 };
 
 type TaskPostPayload = {
@@ -15,6 +16,7 @@ type TaskPostPayload = {
   user_id_verified_by?: number;
   start_date?: string; // YYYY-MM-DD
   end_date?: string; // YYYY-MM-DD
+  end_condition?: string;
 };
 
 type TaskPatchPayload = {
@@ -24,6 +26,7 @@ type TaskPatchPayload = {
   user_id_verified_by?: number | null;
   start_date?: string | null; // YYYY-MM-DD
   end_date?: string | null; // YYYY-MM-DD
+  end_condition?: string | null;
 };
 
 type User = {
