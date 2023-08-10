@@ -34,7 +34,14 @@
 
 import { usersToSelectData } from '@/common/mintine-select';
 import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { filterFalsy } from '@/common/filter-falsy';
@@ -72,6 +79,21 @@ export default function Form1() {
     endDate: [],
     endCondition: [],
   });
+  const [isDirty, setIsDirty] = useState(false);
+
+  // isDirtyなら閉じる前に警告
+  useEffect(() => {
+    const f = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', f);
+    return () => {
+      removeEventListener('beforeunload', f);
+    };
+  }, [isDirty]);
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
@@ -116,6 +138,7 @@ export default function Form1() {
     });
 
     setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
+    setIsDirty(true);
   }, []);
 
   /** 説明 */
@@ -126,6 +149,7 @@ export default function Form1() {
         ...prev,
         description: value,
       }));
+      setIsDirty(true);
     },
     []
   );
@@ -145,6 +169,7 @@ export default function Form1() {
         userIdAssingnedTo: newErrors,
         userIdVerifiedBy: newErrors,
       }));
+      setIsDirty(true);
     },
     [formData.userIdVerifiedBy]
   );
@@ -164,6 +189,7 @@ export default function Form1() {
         userIdAssingnedTo: newErrors,
         userIdVerifiedBy: newErrors,
       }));
+      setIsDirty(true);
     },
     [formData.userIdAssingnedTo]
   );
@@ -182,6 +208,7 @@ export default function Form1() {
         startDate: newErrors,
         endDate: newErrors,
       }));
+      setIsDirty(true);
     },
     [formData.endDate]
   );
@@ -201,6 +228,7 @@ export default function Form1() {
         endDate: newErrors,
         endCondition: validateEndCondition(value, formData.endCondition),
       }));
+      setIsDirty(true);
     },
     [formData.startDate, formData.endCondition]
   );
@@ -219,6 +247,7 @@ export default function Form1() {
         ...prev,
         endCondition: newErrors,
       }));
+      setIsDirty(true);
     },
     [formData.endDate]
   );
@@ -234,6 +263,7 @@ export default function Form1() {
 
     const payload = formDataToPayload(formData);
     window.alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
+    setIsDirty(false);
   }, [formData]);
 
   return (
