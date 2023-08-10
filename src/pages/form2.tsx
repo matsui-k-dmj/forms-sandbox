@@ -1,5 +1,7 @@
 /**
- * form1 のdata, error, isDirty をまとめて一つのstate
+ * form1 のdata, error, isDirty をまとめて一つのstateにする
+ * useCallbackの依存関係が減ってる。
+ * 更新時にerror とか isDirtyについて考える必要があるから、忘れにくそう。
  */
 
 import { usersToSelectData } from '@/common/mintine-select';
@@ -24,30 +26,36 @@ type FormData = {
 type FieldErrors = Record<keyof FormData, string[]>;
 
 export default function Form1() {
-  const [formData, setFormData] = useState<FormData>({
-    title: '',
-    description: '',
-    userIdAssingnedTo: null,
-    userIdVerifiedBy: null,
-    startDate: null,
-    endDate: null,
-    endCondition: '',
+  const [form, setForm] = useState<{
+    data: FormData;
+    error: FieldErrors;
+    isDirty: boolean;
+  }>({
+    data: {
+      title: '',
+      description: '',
+      userIdAssingnedTo: null,
+      userIdVerifiedBy: null,
+      startDate: null,
+      endDate: null,
+      endCondition: '',
+    },
+    error: {
+      title: [],
+      description: [],
+      userIdAssingnedTo: [],
+      userIdVerifiedBy: [],
+      startDate: [],
+      endDate: [],
+      endCondition: [],
+    },
+    isDirty: false,
   });
-  const [errors, setErrors] = useState<FieldErrors>({
-    title: [],
-    description: [],
-    userIdAssingnedTo: [],
-    userIdVerifiedBy: [],
-    startDate: [],
-    endDate: [],
-    endCondition: [],
-  });
-  const [isDirty, setIsDirty] = useState(false);
 
   // isDirtyなら閉じる前に警告
   useEffect(() => {
     const f = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
+      if (form.isDirty) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -56,7 +64,7 @@ export default function Form1() {
     return () => {
       removeEventListener('beforeunload', f);
     };
-  }, [isDirty]);
+  }, [form.isDirty]);
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
@@ -68,7 +76,10 @@ export default function Form1() {
 
   useEffect(() => {
     if (queryConstTaskDetail.data == null) return;
-    setFormData(responseToFormData(queryConstTaskDetail.data));
+    setForm((prev) => ({
+      ...prev,
+      data: responseToFormData(queryConstTaskDetail.data),
+    }));
   }, [queryConstTaskDetail.data]);
 
   const queryAllUsers = useQuery({
@@ -96,138 +107,123 @@ export default function Form1() {
   /** タイトル */
   const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const value = e.currentTarget.value;
-    setFormData((prev) => {
-      return { ...prev, title: value };
-    });
-
-    setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
-    setIsDirty(true);
+    setForm(({ data, error }) => ({
+      data: { ...data, title: value },
+      error: { ...error, title: validateTitle(value) },
+      isDirty: true,
+    }));
   }, []);
 
   /** 説明 */
   const onChangeDescription = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.currentTarget.value;
-      setFormData((prev) => ({
-        ...prev,
-        description: value,
+      setForm(({ data, error }) => ({
+        data: { ...data, description: value },
+        error: { ...error, title: validateTitle(value) },
+        isDirty: true,
       }));
-      setIsDirty(true);
     },
     []
   );
 
   /** 担当者 */
-  const onChangeUserIdAssingnedTo = useCallback(
-    (value: string | null) => {
-      setFormData((prev) => ({
-        ...prev,
-        userIdAssingnedTo: value,
-      }));
-
-      const newErrors = validateUsers(value, formData.userIdVerifiedBy);
-
-      setErrors((prev) => ({
-        ...prev,
-        userIdAssingnedTo: newErrors,
-        userIdVerifiedBy: newErrors,
-      }));
-      setIsDirty(true);
-    },
-    [formData.userIdVerifiedBy]
-  );
+  const onChangeUserIdAssingnedTo = useCallback((value: string | null) => {
+    setForm(({ data, error }) => {
+      const newErrors = validateUsers(value, data.userIdVerifiedBy);
+      return {
+        data: { ...data, userIdAssingnedTo: value },
+        error: {
+          ...error,
+          userIdAssingnedTo: newErrors,
+          userIdVerifiedBy: newErrors,
+        },
+        isDirty: true,
+      };
+    });
+  }, []);
 
   /** 承認者 */
-  const onChangeUserIdVerifiedBy = useCallback(
-    (value: string | null) => {
-      setFormData((prev) => ({
-        ...prev,
-        userIdVerifiedBy: value,
-      }));
-
-      const newErrors = validateUsers(formData.userIdAssingnedTo, value);
-
-      setErrors((prev) => ({
-        ...prev,
-        userIdAssingnedTo: newErrors,
-        userIdVerifiedBy: newErrors,
-      }));
-      setIsDirty(true);
-    },
-    [formData.userIdAssingnedTo]
-  );
+  const onChangeUserIdVerifiedBy = useCallback((value: string | null) => {
+    setForm(({ data, error }) => {
+      const newErrors = validateUsers(value, data.userIdAssingnedTo);
+      return {
+        data: { ...data, userIdVerifiedBy: value },
+        error: {
+          ...error,
+          userIdAssingnedTo: newErrors,
+          userIdVerifiedBy: newErrors,
+        },
+        isDirty: true,
+      };
+    });
+  }, []);
 
   /** 開始日 */
-  const onChangeStartDate = useCallback(
-    (value: Date | null) => {
-      setFormData((prev) => ({
-        ...prev,
-        startDate: value,
-      }));
-
-      const newErrors = validateDate(value, formData.endDate);
-      setErrors((prev) => ({
-        ...prev,
-        startDate: newErrors,
-        endDate: newErrors,
-      }));
-      setIsDirty(true);
-    },
-    [formData.endDate]
-  );
+  const onChangeStartDate = useCallback((value: Date | null) => {
+    setForm(({ data, error }) => {
+      const newErrors = validateDate(value, data.endDate);
+      return {
+        data: { ...data, startDate: value },
+        error: {
+          ...error,
+          startDate: newErrors,
+          endDate: newErrors,
+        },
+        isDirty: true,
+      };
+    });
+  }, []);
 
   /** 終了日 */
-  const onChangeEndDate = useCallback(
-    (value: Date | null) => {
-      setFormData((prev) => ({
-        ...prev,
-        endDate: value,
-      }));
+  const onChangeEndDate = useCallback((value: Date | null) => {
+    setForm(({ data, error }) => {
+      const newErrors = validateDate(data.startDate, value);
 
-      const newErrors = validateDate(formData.startDate, value);
-      setErrors((prev) => ({
-        ...prev,
-        startDate: newErrors,
-        endDate: newErrors,
-        endCondition: validateEndCondition(value, formData.endCondition),
-      }));
-      setIsDirty(true);
-    },
-    [formData.startDate, formData.endCondition]
-  );
+      return {
+        data: { ...data, endDate: value },
+        error: {
+          ...error,
+          startDate: newErrors,
+          endDate: newErrors,
+          endCondition: validateEndCondition(value, data.endCondition),
+        },
+        isDirty: true,
+      };
+    });
+  }, []);
 
   /** 終了条件 */
   const onChangeEndCondition = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.currentTarget.value;
-      setFormData((prev) => ({
-        ...prev,
-        endCondition: value,
-      }));
-
-      const newErrors = validateEndCondition(formData.endDate, value);
-      setErrors((prev) => ({
-        ...prev,
-        endCondition: newErrors,
-      }));
-      setIsDirty(true);
+      setForm(({ data, error }) => {
+        return {
+          data: { ...data, endCondition: value },
+          error: {
+            ...error,
+            endCondition: validateEndCondition(data.endDate, value),
+          },
+          isDirty: true,
+        };
+      });
     },
-    [formData.endDate]
+    []
   );
 
   /** 保存 */
   const onPost = useCallback(() => {
-    const newErrors = validateForm(formData);
-    setErrors(newErrors);
+    const newErrors = validateForm(form.data);
+    setForm((prev) => ({ ...prev, error: newErrors }));
     if (Object.values(newErrors).some((errors) => errors.length > 0)) {
       window.alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
       return;
     }
 
-    const payload = formDataToPayload(formData);
+    const payload = formDataToPayload(form.data);
     window.alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
-    setIsDirty(false);
-  }, [formData]);
+    setForm((prev) => ({ ...prev, isDirty: false }));
+  }, [form.data]);
 
   return (
     <div className="p-20">
@@ -240,15 +236,15 @@ export default function Form1() {
             <TextInput
               label="タイトル"
               withAsterisk
-              error={errors.title.join(', ')}
-              value={formData.title}
+              error={form.error.title.join(', ')}
+              value={form.data.title}
               onChange={onChangeTitle}
             />
           </div>
           <div className="my-2">
             <Textarea
               label="説明"
-              value={formData.description}
+              value={form.data.description}
               onChange={onChangeDescription}
             />
           </div>
@@ -259,9 +255,9 @@ export default function Form1() {
               searchable
               clearable
               nothingFound="No options"
-              value={formData.userIdAssingnedTo}
+              value={form.data.userIdAssingnedTo}
               onChange={onChangeUserIdAssingnedTo}
-              error={errors.userIdAssingnedTo.join(', ')}
+              error={form.error.userIdAssingnedTo.join(', ')}
             />
           </div>
 
@@ -272,9 +268,9 @@ export default function Form1() {
               searchable
               clearable
               nothingFound="No options"
-              value={formData.userIdVerifiedBy}
+              value={form.data.userIdVerifiedBy}
               onChange={onChangeUserIdVerifiedBy}
-              error={errors.userIdVerifiedBy.join(', ')}
+              error={form.error.userIdVerifiedBy.join(', ')}
             />
           </div>
           <div className="my-2">
@@ -282,10 +278,10 @@ export default function Form1() {
               label="開始日"
               valueFormat="YYYY/MM/DD"
               clearable
-              value={formData.startDate}
-              maxDate={formData.endDate ?? undefined}
+              value={form.data.startDate}
+              maxDate={form.data.endDate ?? undefined}
               onChange={onChangeStartDate}
-              error={errors.startDate.join(', ')}
+              error={form.error.startDate.join(', ')}
             />
           </div>
           <div className="my-2">
@@ -293,20 +289,20 @@ export default function Form1() {
               label="終了日"
               valueFormat="YYYY/MM/DD"
               clearable
-              value={formData.endDate}
-              minDate={formData.startDate ?? undefined}
+              value={form.data.endDate}
+              minDate={form.data.startDate ?? undefined}
               onChange={onChangeEndDate}
-              error={errors.endDate.join(', ')}
+              error={form.error.endDate.join(', ')}
             />
           </div>
-          {formData.endDate == null && (
+          {form.data.endDate == null && (
             <div className="my-2">
               <Textarea
                 label="終了条件"
-                value={formData.endCondition}
+                value={form.data.endCondition}
                 onChange={onChangeEndCondition}
-                error={errors.endCondition.join(', ')}
-                withAsterisk={formData.endDate == null}
+                error={form.error.endCondition.join(', ')}
+                withAsterisk={form.data.endDate == null}
               />
             </div>
           )}
