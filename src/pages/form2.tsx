@@ -4,13 +4,20 @@
  * 更新時にerror とか isDirtyについて考える必要があるから、忘れにくそう。
  */
 
-import { usersToSelectData } from '@/common/mintine-select';
+import {
+  taskTemplatesToSelectData,
+  usersToSelectData,
+} from '@/common/mintine-select';
 import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { filterFalsy } from '@/common/filter-falsy';
-import { fetchAllUsers, fetchConstTaskDetail } from '@/common/stubs';
+import {
+  fetchAllUsers,
+  fetchConstTaskDetail,
+  fetchTaskTemplate,
+} from '@/common/stubs';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
@@ -51,6 +58,9 @@ export default function Form1() {
     },
     isDirty: false,
   });
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null
+  );
 
   // isDirtyなら閉じる前に警告
   useEffect(() => {
@@ -102,7 +112,42 @@ export default function Form1() {
     [queryAllUsers.data, queryConstTaskDetail.data]
   );
 
+  const queryTaskTemplates = useQuery({
+    queryKey: ['TaskTemplates'],
+    queryFn: () => {
+      return fetchTaskTemplate;
+    },
+  });
+
+  const optionTaskTemplates = useMemo(
+    () => taskTemplatesToSelectData(queryTaskTemplates.data ?? []),
+    [queryTaskTemplates.data]
+  );
+
   // # イベントハンドラ
+  /** テンプレート選択 */
+  const onChangeTemplate = useCallback(
+    (value: string | null) => {
+      setSelectedTemplateId(value);
+      const selectedTemplate = queryTaskTemplates.data?.find(
+        (template) => String(template.id) === value
+      );
+      setForm(({ data, error }) => ({
+        data: {
+          ...data,
+          title: selectedTemplate?.title ?? '',
+          description: selectedTemplate?.description ?? '',
+        },
+        error: {
+          ...error,
+          title: validateTitle(selectedTemplate?.title ?? ''),
+        },
+        isDirty: true,
+      }));
+    },
+    [queryTaskTemplates.data]
+  );
+
   // ## 個々のフォーム
   /** タイトル */
   const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +277,17 @@ export default function Form1() {
         <div>Loading...</div>
       ) : (
         <>
+          <div className="my-2">
+            <Select
+              label="テンプレートを選択する"
+              data={optionTaskTemplates}
+              searchable
+              clearable
+              nothingFound="No options"
+              value={selectedTemplateId}
+              onChange={onChangeTemplate}
+            />
+          </div>
           <div className="my-2">
             <TextInput
               label="タイトル"
