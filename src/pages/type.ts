@@ -33,3 +33,9 @@ type User = {
   id: number;
   name: string;
 };
+
+type TaskTemplate = {
+  id: number;
+  title: string;
+  description: string;
+};

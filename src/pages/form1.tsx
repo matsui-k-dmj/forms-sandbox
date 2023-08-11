@@ -29,16 +29,23 @@
  * いや。data, error, isDirty をまとめて一つのstateにして、そのsetStateの中でやれば同じ。
  * actionもそとで関数に分ければいいだけなんよな
  *
- *
+ * テンプレートから選択してタイトルと説明に代入するときに validation とかをちゃんと意識してしないとあかん。
  */
 
-import { usersToSelectData } from '@/common/mintine-select';
+import {
+  taskTemplatesToSelectData,
+  usersToSelectData,
+} from '@/common/mintine-select';
 import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { filterFalsy } from '@/common/filter-falsy';
-import { fetchAllUsers, fetchConstTaskDetail } from '@/common/stubs';
+import {
+  fetchTaskTemplate,
+  fetchAllUsers,
+  fetchConstTaskDetail,
+} from '@/common/stubs';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
@@ -73,6 +80,9 @@ export default function Form1() {
     endCondition: [],
   });
   const [isDirty, setIsDirty] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null
+  );
 
   // isDirtyなら閉じる前に警告
   useEffect(() => {
@@ -120,8 +130,44 @@ export default function Form1() {
     [queryAllUsers.data, queryConstTaskDetail.data]
   );
 
+  const queryTaskTemplates = useQuery({
+    queryKey: ['TaskTemplates'],
+    queryFn: () => {
+      return fetchTaskTemplate;
+    },
+  });
+
+  const optionTaskTemplates = useMemo(
+    () => taskTemplatesToSelectData(queryTaskTemplates.data ?? []),
+    [queryTaskTemplates.data]
+  );
+
   // # イベントハンドラ
   // ## 個々のフォーム
+  /** テンプレート選択 */
+  const onChangeTemplate = useCallback(
+    (value: string | null) => {
+      setSelectedTemplateId(value);
+      const selectedTemplate = queryTaskTemplates.data?.find(
+        (template) => String(template.id) === value
+      );
+
+      setFormData((prev) => {
+        return {
+          ...prev,
+          title: selectedTemplate?.title ?? '',
+          description: selectedTemplate?.description ?? '',
+        };
+      });
+      setErrors((prev) => ({
+        ...prev,
+        title: validateTitle(selectedTemplate?.title ?? ''),
+      }));
+      setIsDirty(true);
+    },
+    [queryTaskTemplates.data]
+  );
+
   /** タイトル */
   const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const value = e.currentTarget.value;
@@ -266,6 +312,17 @@ export default function Form1() {
       ) : (
         <>
           <div className="my-2">
+            <Select
+              label="テンプレートを選択する"
+              data={optionTaskTemplates}
+              searchable
+              clearable
+              nothingFound="No options"
+              value={selectedTemplateId}
+              onChange={onChangeTemplate}
+            />
+          </div>
+          <div className="my-2">
             <TextInput
               label="タイトル"
               withAsterisk
@@ -339,7 +396,7 @@ export default function Form1() {
               />
             </div>
           )}
-          <div>
+          <div className="mt-4">
             <Button onClick={onPost}>保存</Button>
           </div>
         </>
