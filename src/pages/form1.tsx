@@ -76,11 +76,10 @@ export default function Form1() {
 
   // isDirtyなら閉じる前に警告
   useEffect(() => {
+    if (!isDirty) return;
     const f = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      e.preventDefault();
+      e.returnValue = '';
     };
     window.addEventListener('beforeunload', f);
     return () => {
