@@ -60,6 +60,8 @@ type FormData = {
 
 type FieldErrors = Record<keyof FormData, string[]>;
 
+const titleMaxLength = 8;
+
 export default function Form1() {
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -329,6 +331,7 @@ export default function Form1() {
               error={errors.title.join(', ')}
               value={formData.title}
               onChange={onChangeTitle}
+              maxLength={titleMaxLength + 1}
             />
           </div>
           <div className="my-2">
@@ -481,8 +484,8 @@ function validateTitle(value: string) {
   if (value === '') {
     newErrors.push('必須');
   }
-  if (value.length >= 21) {
-    newErrors.push('20文字以内');
+  if (value.length >= titleMaxLength + 1) {
+    newErrors.push(`${titleMaxLength}文字以内`);
   }
   return newErrors;
 }
