@@ -33,6 +33,7 @@ type FormData = {
 type FieldErrors = Record<keyof FormData, string[]>;
 
 const titleMaxLength = 8;
+const descriptionMaxLength = 20;
 
 export default function Form2() {
   const [form, setForm] = useState<{
@@ -143,6 +144,7 @@ export default function Form2() {
         error: {
           ...error,
           title: validateTitle(selectedTemplate?.title ?? ''),
+          description: validateDescription(selectedTemplate?.description ?? ''),
         },
         isDirty: true,
       }));
@@ -167,7 +169,7 @@ export default function Form2() {
       const value = e.currentTarget.value;
       setForm(({ data, error }) => ({
         data: { ...data, description: value },
-        error: { ...error, title: validateTitle(value) },
+        error: { ...error, description: validateDescription(value) },
         isDirty: true,
       }));
     },
@@ -305,6 +307,8 @@ export default function Form2() {
               label="説明"
               value={form.data.description}
               onChange={onChangeDescription}
+              maxLength={descriptionMaxLength + 1}
+              error={form.error.description.join(', ')}
             />
           </div>
           <div className="my-2">
@@ -434,7 +438,7 @@ function validateForm(formData: FormData): FieldErrors {
   const dateErrors = validateDate(formData.startDate, formData.endDate);
   const newErrors: FieldErrors = {
     title: validateTitle(formData.title),
-    description: [],
+    description: validateDescription(formData.description),
     userIdAssingnedTo: usersErrors,
     userIdVerifiedBy: usersErrors,
     startDate: dateErrors,
@@ -452,6 +456,15 @@ function validateTitle(value: string) {
   }
   if (value.length >= titleMaxLength + 1) {
     newErrors.push(`${titleMaxLength}文字以内`);
+  }
+  return newErrors;
+}
+
+/** 説明 */
+function validateDescription(value: string) {
+  const newErrors: string[] = [];
+  if (value.length >= descriptionMaxLength + 1) {
+    newErrors.push(`${descriptionMaxLength}文字以内`);
   }
   return newErrors;
 }
