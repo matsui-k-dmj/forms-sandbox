@@ -18,6 +18,7 @@ import {
   fetchConstTaskDetail,
   fetchTaskTemplate,
 } from '@/common/stubs';
+import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
@@ -65,19 +66,7 @@ export default function Form2() {
     null
   );
 
-  // isDirtyなら閉じる前に警告
-  useEffect(() => {
-    if (!form.isDirty) return;
-
-    const f = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', f);
-    return () => {
-      removeEventListener('beforeunload', f);
-    };
-  }, [form.isDirty]);
+  useConfirmBeforeUnload(form.isDirty);
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
