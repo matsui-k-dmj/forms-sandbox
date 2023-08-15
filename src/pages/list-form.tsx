@@ -24,7 +24,6 @@ export default function ListForm() {
       'sortValue'
     )
   );
-  console.log(tasks);
   const queryAllUsers = useQuery({
     queryKey: ['AllUsers'],
     queryFn: () => {
