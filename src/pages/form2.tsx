@@ -2,6 +2,7 @@
  * form1 のdata, error, isDirty をまとめて一つのstateにする
  * useCallbackの依存関係が減ってる。
  * 更新時にerror とか isDirtyについて考える必要があるから、忘れにくそう。
+ * onPost でも setForm の中でいろいろやれれば, formへの依存がなくなってrerenderしなくて良くなる
  */
 
 import {
@@ -251,17 +252,18 @@ export default function Form2() {
 
   /** 保存 */
   const onPost = useCallback(() => {
-    const newErrors = validateForm(form.data);
-    setForm((prev) => ({ ...prev, error: newErrors }));
-    if (Object.values(newErrors).some((errors) => errors.length > 0)) {
-      window.alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
-      return;
-    }
+    setForm((prev) => {
+      const newErrors = validateForm(prev.data);
+      if (Object.values(newErrors).some((errors) => errors.length > 0)) {
+        console.log(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
+        return { ...prev, error: newErrors };
+      }
 
-    const payload = formDataToPayload(form.data);
-    window.alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
-    setForm((prev) => ({ ...prev, isDirty: false }));
-  }, [form.data]);
+      const payload = formDataToPayload(prev.data);
+      console.log(`Submit:\n${JSON.stringify(payload, null, 2)}`);
+      return { ...prev, error: newErrors, isDirty: false };
+    });
+  }, []);
 
   return (
     <div className="p-20">
