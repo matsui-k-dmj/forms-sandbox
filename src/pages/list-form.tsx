@@ -24,6 +24,7 @@ export default function ListForm() {
       'sortValue'
     )
   );
+  console.log(tasks);
   const queryAllUsers = useQuery({
     queryKey: ['AllUsers'],
     queryFn: () => {
@@ -127,21 +128,39 @@ export default function ListForm() {
     });
   }, []);
 
+  const onAdd = useCallback(() => {
+    setTasks((prev) => {
+      const newTasks = prev.concat();
+      newTasks.push({
+        title: '',
+        userId: null,
+        sortValue:
+          (newTasks.at(-1)?.sortValue ?? 0) + getRandomArbitrary(0.0, 1.0),
+      });
+      return newTasks;
+    });
+  }, []);
+
   return (
     <div className="p-20">
-      {tasks.map((task) => {
-        return (
-          <ListItem
-            key={task.sortValue}
-            item={task}
-            optionUsers={optionUsers}
-            onChange={onChange}
-            onUp={onUp}
-            onDown={onDown}
-            onRemove={onRemove}
-          />
-        );
-      })}
+      <div>
+        {tasks.map((task) => {
+          return (
+            <ListItem
+              key={task.sortValue}
+              item={task}
+              optionUsers={optionUsers}
+              onChange={onChange}
+              onUp={onUp}
+              onDown={onDown}
+              onRemove={onRemove}
+            />
+          );
+        })}
+      </div>
+      <div className="mx-2 my-4">
+        <Button onClick={onAdd}>Add Task</Button>
+      </div>
     </div>
   );
 }
@@ -208,13 +227,13 @@ const ListItem = memo(function ListItem({
           onChange={onChangeUserId}
         />
       </div>
-      <div className="mx-2">
+      <div className="mx-1">
         <Button onClick={onClickUp}>Up</Button>
       </div>
-      <div className="mx-2">
+      <div className="mx-1">
         <Button onClick={onClickDown}>Down</Button>
       </div>
-      <div className="mx-2">
+      <div className="mx-1">
         <Button onClick={onClickRemove}>Remove</Button>
       </div>
     </div>
