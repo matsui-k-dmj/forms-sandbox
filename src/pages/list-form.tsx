@@ -1,3 +1,14 @@
+/**
+ * リストを直接編集できるようにする。
+ *
+ * 親のstate更新は全部 setState(prev => ...) の中でやれば、useCallback を tasks に依存させなくていいので、
+ * rerender を抑えられる。
+ *
+ * 親からもらった handler には sortValue を渡す必要があるので、Item の中でも useCallback でラップする必要がある。
+ *
+ * sortValue のやり方は Fractional Indexing っていうパターン
+ */
+
 import { Button, Select, TextInput } from '@/lib/mantine';
 import { SelectItem } from '@mantine/core';
 import { ChangeEvent, memo, useCallback, useMemo, useState } from 'react';
