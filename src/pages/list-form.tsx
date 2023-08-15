@@ -4,6 +4,9 @@
  * 親のstate更新は全部 setState(prev => ...) の中でやれば、useCallback を tasks に依存させなくていいので、
  * rerender を抑えられる。
  *
+ * 親の onChange には Partial<Item> を渡せるようにしとくと、ListItem の中でそれぞれのフィールド用の
+ * useCallback が、他のフィールドに依存しなくて良くなるので、rerender を抑えられる。
+ *
  * 親からもらった handler には sortValue を渡す必要があるので、Item の中でも useCallback でラップする必要がある。
  *
  * sortValue のやり方は Fractional Indexing っていうパターン
