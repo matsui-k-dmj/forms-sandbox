@@ -178,8 +178,8 @@ export default function Form2() {
           data: newData,
           error: {
             ...error,
-            title: validators.title(newData),
-            description: validators.description(newData),
+            title: validateTarget('title', newData, validators),
+            description: validateTarget('description', newData, validators),
           },
           isDirty: true,
         };
@@ -454,14 +454,17 @@ function validateForm(formData: FormData): FieldErrors {
   const newErrors = Object.fromEntries(
     Object.keys(formData).map((key) => [
       key,
-      validators[key as keyof FormData](formData) ?? [],
+      validateTarget(key as keyof FormData, formData, validators),
     ])
   );
 
   return newErrors as FieldErrors;
 }
 
-const validators = {
+type Validators = Partial<
+  Record<keyof FormData, (formData: FormData) => string[]>
+>;
+const validators: Validators = {
   title(form) {
     const newErrors: string[] = [];
     const value = form.title;
@@ -501,10 +504,7 @@ const validators = {
     }
     return newErrors;
   },
-} satisfies Record<
-  keyof FormData,
-  ((formData: FormData) => string[]) | undefined
->;
+};
 
 /** 担当者, 承認者 */
 function validateUsers(form: FormData) {
@@ -538,8 +538,17 @@ function updateErrors(
 ): FieldErrors {
   const newErrors = Object.fromEntries(
     validateTargetArray.map((target) => {
-      return [target, validators[target](formData)];
+      return [target, validateTarget(target, formData, validators)];
     })
   );
   return { ...prevErrors, ...newErrors };
+}
+
+/** validator がない場合は [] を返す */
+function validateTarget(
+  target: keyof FormData,
+  formData: FormData,
+  validators: Validators
+): string[] {
+  return validators[target]?.(formData) ?? [];
 }
