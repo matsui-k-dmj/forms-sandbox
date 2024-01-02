@@ -9,7 +9,14 @@ import {
   taskTemplatesToSelectData,
   usersToSelectData,
 } from '@/common/mintine-select';
-import { Select, TextInput, Textarea, DateInput, Button, MultiSelect } from '@/lib/mantine';
+import {
+  Select,
+  TextInput,
+  Textarea,
+  DateInput,
+  Button,
+  MultiSelect,
+} from '@/lib/mantine';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
@@ -66,6 +73,7 @@ export default function Form2() {
     },
     isDirty: false,
   });
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
@@ -136,8 +144,10 @@ export default function Form2() {
         },
         error: {
           ...error,
-          title: validateTitle(selectedTemplate?.title ?? ''),
-          description: validateDescription(selectedTemplate?.description ?? ''),
+          title: validators.title(selectedTemplate?.title ?? ''),
+          description: validators.description(
+            selectedTemplate?.description ?? ''
+          ),
         },
         isDirty: true,
       }));
@@ -151,7 +161,7 @@ export default function Form2() {
     const value = e.currentTarget.value;
     setForm(({ data, error }) => ({
       data: { ...data, title: value },
-      error: { ...error, title: validateTitle(value) },
+      error: { ...error, title: validators.title(value) },
       isDirty: true,
     }));
   }, []);
@@ -162,7 +172,7 @@ export default function Form2() {
       const value = e.currentTarget.value;
       setForm(({ data, error }) => ({
         data: { ...data, description: value },
-        error: { ...error, description: validateDescription(value) },
+        error: { ...error, description: validators.description(value) },
         isDirty: true,
       }));
     },
@@ -201,12 +211,15 @@ export default function Form2() {
     });
   }, []);
 
-    /** 関係者 */
+  /** 関係者 */
   const onChangeUserIdInvolvedArray = useCallback((value: string[]) => {
     setForm(({ data, error }) => {
       return {
-        data: { ...data, userIdInvolvedArray: value},
-        error: {...error, userIdInvolvedArray: validateUserIdInvolvedArray(value)},
+        data: { ...data, userIdInvolvedArray: value },
+        error: {
+          ...error,
+          userIdInvolvedArray: validators.userIdInvolvedArray(value),
+        },
         isDirty: true,
       };
     });
@@ -239,7 +252,7 @@ export default function Form2() {
           ...error,
           startDate: newErrors,
           endDate: newErrors,
-          endCondition: validateEndCondition(value, data.endCondition),
+          endCondition: validators.endCondition(value, data.endCondition),
         },
         isDirty: true,
       };
@@ -255,7 +268,7 @@ export default function Form2() {
           data: { ...data, endCondition: value },
           error: {
             ...error,
-            endCondition: validateEndCondition(data.endDate, value),
+            endCondition: validators.endCondition(data.endDate, value),
           },
           isDirty: true,
         };
@@ -282,7 +295,9 @@ export default function Form2() {
   return (
     <div className="p-20">
       <div className="my-2">タスク編集</div>
-      {queryConstTaskDetail.isLoading || queryAllUsers.isLoading || queryTaskTemplates.isLoading ? (
+      {queryConstTaskDetail.isLoading ||
+      queryAllUsers.isLoading ||
+      queryTaskTemplates.isLoading ? (
         <div>Loading...</div>
       ) : (
         <>
@@ -409,7 +424,7 @@ function responseToFormData(response: TaskDetail): FormData {
       response.user_verified_by?.id == null
         ? null
         : String(response.user_verified_by?.id),
-    userIdInvolvedArray: response.user_involved_array.map(x => String(x.id)),
+    userIdInvolvedArray: response.user_involved_array.map((x) => String(x.id)),
     startDate:
       response.start_date == null
         ? null
@@ -455,38 +470,61 @@ function validateForm(formData: FormData): FieldErrors {
   );
   const dateErrors = validateDate(formData.startDate, formData.endDate);
   const newErrors: FieldErrors = {
-    title: validateTitle(formData.title),
-    description: validateDescription(formData.description),
+    title: validators.title(formData.title),
+    description: validators.description(formData.description),
     userIdAssingnedTo: usersErrors,
     userIdVerifiedBy: usersErrors,
     userIdInvolvedArray: [],
     startDate: dateErrors,
     endDate: dateErrors,
-    endCondition: validateEndCondition(formData.endDate, formData.endCondition),
+    endCondition: validators.endCondition(
+      formData.endDate,
+      formData.endCondition
+    ),
   };
   return newErrors;
 }
 
-/** タイトル */
-function validateTitle(value: string) {
-  const newErrors: string[] = [];
-  if (value === '') {
-    newErrors.push('必須');
-  }
-  if (value.length >= titleMaxLength + 1) {
-    newErrors.push(`${titleMaxLength}文字以内`);
-  }
-  return newErrors;
-}
-
-/** 説明 */
-function validateDescription(value: string) {
-  const newErrors: string[] = [];
-  if (value.length >= descriptionMaxLength + 1) {
-    newErrors.push(`${descriptionMaxLength}文字以内`);
-  }
-  return newErrors;
-}
+const validators = {
+  title(value: string) {
+    const newErrors: string[] = [];
+    if (value === '') {
+      newErrors.push('必須');
+    }
+    if (value.length >= titleMaxLength + 1) {
+      newErrors.push(`${titleMaxLength}文字以内`);
+    }
+    return newErrors;
+  },
+  description(value: string) {
+    const newErrors: string[] = [];
+    if (value.length >= descriptionMaxLength + 1) {
+      newErrors.push(`${descriptionMaxLength}文字以内`);
+    }
+    return newErrors;
+  },
+  userIdAssingnedTo: validateUsers,
+  userIdVerifiedBy: validateUsers,
+  userIdInvolvedArray(value: string[]) {
+    const newErrors: string[] = [];
+    if (value.length === 0) {
+      newErrors.push('必須');
+    }
+    return newErrors;
+  },
+  startDate: validateDate,
+  endDate: validateDate,
+  endCondition(
+    endDate: FormData['endDate'],
+    endCondition: FormData['endCondition']
+  ) {
+    const newErrors: string[] = [];
+    if (endDate == null && endCondition === '') {
+      newErrors.push('終了日が未定の場合は終了条件が必要です。');
+    }
+    return newErrors;
+  },
+} satisfies Record<keyof FormData, ((...args: any[]) => string[]) | undefined>;
 
 /** 担当者, 承認者 */
 function validateUsers(
@@ -502,15 +540,6 @@ function validateUsers(
   return newErrors;
 }
 
-/** 関係者 */
-function validateUserIdInvolvedArray(value: string[]) {
-  const newErrors: string[] = [];
-  if (value.length === 0) {
-    newErrors.push('必須');
-  }
-  return newErrors;
-}
-
 /** 開始日, 終了日 */
 function validateDate(startDate?: Date | null, endDate?: Date | null) {
   const newErrors: string[] = [];
@@ -518,18 +547,6 @@ function validateDate(startDate?: Date | null, endDate?: Date | null) {
     if (endDate < startDate) {
       newErrors.push('開始日が終了日よりも後になっています');
     }
-  }
-  return newErrors;
-}
-
-/** 終了条件 */
-function validateEndCondition(
-  endDate: FormData['endDate'],
-  endCondition: FormData['endCondition']
-) {
-  const newErrors: string[] = [];
-  if (endDate == null && endCondition === '') {
-    newErrors.push('終了日が未定の場合は終了条件が必要です。');
   }
   return newErrors;
 }
