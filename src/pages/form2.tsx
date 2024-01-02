@@ -74,6 +74,99 @@ export default function Form2() {
     isDirty: false,
   });
 
+  // # バリデーション
+  /** フォーム全体のバリデーション */
+  function validateForm(formData: FormData): FieldErrors {
+    const usersErrors = validateUsers(
+      formData.userIdAssingnedTo,
+      formData.userIdVerifiedBy
+    );
+    const dateErrors = validateDate(formData.startDate, formData.endDate);
+    const newErrors: FieldErrors = {
+      title: validators.title(formData.title),
+      description: validators.description(formData.description),
+      userIdAssingnedTo: usersErrors,
+      userIdVerifiedBy: usersErrors,
+      userIdInvolvedArray: [],
+      startDate: dateErrors,
+      endDate: dateErrors,
+      endCondition: validators.endCondition(
+        formData.endDate,
+        formData.endCondition
+      ),
+    };
+    return newErrors;
+  }
+
+  const validators = {
+    title(value: string) {
+      const newErrors: string[] = [];
+      if (value === '') {
+        newErrors.push('必須');
+      }
+      if (value.length >= titleMaxLength + 1) {
+        newErrors.push(`${titleMaxLength}文字以内`);
+      }
+      return newErrors;
+    },
+    description(value: string) {
+      const newErrors: string[] = [];
+      if (value.length >= descriptionMaxLength + 1) {
+        newErrors.push(`${descriptionMaxLength}文字以内`);
+      }
+      return newErrors;
+    },
+    userIdAssingnedTo: validateUsers,
+    userIdVerifiedBy: validateUsers,
+    userIdInvolvedArray(value: string[]) {
+      const newErrors: string[] = [];
+      if (value.length === 0) {
+        newErrors.push('必須');
+      }
+      return newErrors;
+    },
+    startDate: validateDate,
+    endDate: validateDate,
+    endCondition(
+      endDate: FormData['endDate'],
+      endCondition: FormData['endCondition']
+    ) {
+      const newErrors: string[] = [];
+      if (endDate == null && endCondition === '') {
+        newErrors.push('終了日が未定の場合は終了条件が必要です。');
+      }
+      return newErrors;
+    },
+  } satisfies Record<
+    keyof FormData,
+    ((...args: any[]) => string[]) | undefined
+  >;
+
+  /** 担当者, 承認者 */
+  function validateUsers(
+    userIdAssingnedTo?: string | null,
+    userIdVerifiedBy?: string | null
+  ) {
+    const newErrors: string[] = [];
+    if (userIdAssingnedTo != null && userIdVerifiedBy != null) {
+      if (userIdAssingnedTo === userIdVerifiedBy) {
+        newErrors.push('担当者と承認者が同じです');
+      }
+    }
+    return newErrors;
+  }
+
+  /** 開始日, 終了日 */
+  function validateDate(startDate?: Date | null, endDate?: Date | null) {
+    const newErrors: string[] = [];
+    if (startDate != null && endDate != null) {
+      if (endDate < startDate) {
+        newErrors.push('開始日が終了日よりも後になっています');
+      }
+    }
+    return newErrors;
+  }
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
@@ -459,94 +552,4 @@ function formDataToPayload(formData: FormData): TaskPatchPayload {
         : dayjs(formData.endDate).format('YYYY-MM-DD'),
     end_condition: formData.endCondition || null,
   };
-}
-
-// # バリデーション
-/** フォーム全体のバリデーション */
-function validateForm(formData: FormData): FieldErrors {
-  const usersErrors = validateUsers(
-    formData.userIdAssingnedTo,
-    formData.userIdVerifiedBy
-  );
-  const dateErrors = validateDate(formData.startDate, formData.endDate);
-  const newErrors: FieldErrors = {
-    title: validators.title(formData.title),
-    description: validators.description(formData.description),
-    userIdAssingnedTo: usersErrors,
-    userIdVerifiedBy: usersErrors,
-    userIdInvolvedArray: [],
-    startDate: dateErrors,
-    endDate: dateErrors,
-    endCondition: validators.endCondition(
-      formData.endDate,
-      formData.endCondition
-    ),
-  };
-  return newErrors;
-}
-
-const validators = {
-  title(value: string) {
-    const newErrors: string[] = [];
-    if (value === '') {
-      newErrors.push('必須');
-    }
-    if (value.length >= titleMaxLength + 1) {
-      newErrors.push(`${titleMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  description(value: string) {
-    const newErrors: string[] = [];
-    if (value.length >= descriptionMaxLength + 1) {
-      newErrors.push(`${descriptionMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  userIdAssingnedTo: validateUsers,
-  userIdVerifiedBy: validateUsers,
-  userIdInvolvedArray(value: string[]) {
-    const newErrors: string[] = [];
-    if (value.length === 0) {
-      newErrors.push('必須');
-    }
-    return newErrors;
-  },
-  startDate: validateDate,
-  endDate: validateDate,
-  endCondition(
-    endDate: FormData['endDate'],
-    endCondition: FormData['endCondition']
-  ) {
-    const newErrors: string[] = [];
-    if (endDate == null && endCondition === '') {
-      newErrors.push('終了日が未定の場合は終了条件が必要です。');
-    }
-    return newErrors;
-  },
-} satisfies Record<keyof FormData, ((...args: any[]) => string[]) | undefined>;
-
-/** 担当者, 承認者 */
-function validateUsers(
-  userIdAssingnedTo?: string | null,
-  userIdVerifiedBy?: string | null
-) {
-  const newErrors: string[] = [];
-  if (userIdAssingnedTo != null && userIdVerifiedBy != null) {
-    if (userIdAssingnedTo === userIdVerifiedBy) {
-      newErrors.push('担当者と承認者が同じです');
-    }
-  }
-  return newErrors;
-}
-
-/** 開始日, 終了日 */
-function validateDate(startDate?: Date | null, endDate?: Date | null) {
-  const newErrors: string[] = [];
-  if (startDate != null && endDate != null) {
-    if (endDate < startDate) {
-      newErrors.push('開始日が終了日よりも後になっています');
-    }
-  }
-  return newErrors;
 }
