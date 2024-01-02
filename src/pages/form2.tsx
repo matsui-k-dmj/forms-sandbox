@@ -74,6 +74,37 @@ export default function Form2() {
     isDirty: false,
   });
 
+  /**
+   * UIコンポーネントの onChange に渡す関数のファクトリー
+   * @param updateTarget 更新するフィールド名
+   * @param validateTargetArray バリデーションするフィールド名の配列
+   * @param convertFn (Optional) UIコンポーネントの onChange の引数を FormData 用に変換する
+   * @returns UIコンポーネントの onChange に渡す関数
+   */
+  const createOnChangeField = <
+    T_UpdateTarget extends keyof FormData,
+    T_ConvertFn extends ((value: any) => FormData[T_UpdateTarget]) | undefined,
+    R = undefined extends T_ConvertFn
+      ? (value: FormData[T_UpdateTarget]) => void
+      : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
+  >(
+    updateTarget: T_UpdateTarget,
+    validateTargetArray: Array<keyof FormData>,
+    convertFn?: T_ConvertFn
+  ): R => {
+    return ((value: any) => {
+      const newValue = convertFn == null ? value : convertFn(value);
+      setForm(({ data, error }) => {
+        const newData = { ...data, [updateTarget]: newValue };
+        return {
+          data: newData,
+          error: updateErrors(newData, error, validateTargetArray),
+          isDirty: true,
+        };
+      });
+    }) as R;
+  };
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
@@ -86,6 +117,7 @@ export default function Form2() {
     queryFn: () => {
       return fetchConstTaskDetail;
     },
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
@@ -156,134 +188,81 @@ export default function Form2() {
     [queryTaskTemplates.data]
   );
 
+  // elint は createOnChangeField の中身まで読まないので、useCallback の依存対象が分からない
+  /* eslint-disable react-hooks/exhaustive-deps */
   // ## 個々のフォーム
   /** タイトル */
-  const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.currentTarget.value;
-    setForm(({ data, error }) => {
-      const newData = { ...data, title: value };
-      return {
-        data: newData,
-        error: { ...error, title: validators.title(newData) },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeTitle = useCallback(
+    createOnChangeField(
+      'title',
+      ['title'],
+      (e: ChangeEvent<HTMLInputElement>) => {
+        return e.target.value;
+      }
+    ),
+    []
+  );
 
   /** 説明 */
   const onChangeDescription = useCallback(
-    (e: ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.currentTarget.value;
-      setForm(({ data, error }) => {
-        const newData = { ...data, description: value };
-        return {
-          data: newData,
-          error: { ...error, description: validators.description(newData) },
-          isDirty: true,
-        };
-      });
-    },
+    createOnChangeField(
+      'description',
+      ['description'],
+      (e: ChangeEvent<HTMLTextAreaElement>) => {
+        return e.target.value;
+      }
+    ),
     []
   );
 
   /** 担当者 */
-  const onChangeUserIdAssingnedTo = useCallback((value: string | null) => {
-    setForm(({ data, error }) => {
-      const newData = { ...data, userIdAssingnedTo: value };
-      return {
-        data: newData,
-        error: {
-          ...error,
-          userIdAssingnedTo: validators.userIdAssingnedTo(newData),
-          userIdVerifiedBy: validators.userIdVerifiedBy(newData),
-        },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeUserIdAssingnedTo = useCallback(
+    createOnChangeField('userIdAssingnedTo', [
+      'userIdAssingnedTo',
+      'userIdVerifiedBy',
+    ]),
+    []
+  );
 
   /** 承認者 */
-  const onChangeUserIdVerifiedBy = useCallback((value: string | null) => {
-    setForm(({ data, error }) => {
-      const newData = { ...data, userIdVerifiedBy: value };
-      return {
-        data: newData,
-        error: {
-          ...error,
-          userIdAssingnedTo: validators.userIdAssingnedTo(newData),
-          userIdVerifiedBy: validators.userIdVerifiedBy(newData),
-        },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeUserIdVerifiedBy = useCallback(
+    createOnChangeField('userIdVerifiedBy', [
+      'userIdAssingnedTo',
+      'userIdVerifiedBy',
+    ]),
+    []
+  );
 
   /** 関係者 */
-  const onChangeUserIdInvolvedArray = useCallback((value: string[]) => {
-    setForm(({ data, error }) => {
-      const newData = { ...data, userIdInvolvedArray: value };
-      return {
-        data: newData,
-        error: {
-          ...error,
-          userIdInvolvedArray: validators.userIdInvolvedArray(newData),
-        },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeUserIdInvolvedArray = useCallback(
+    createOnChangeField('userIdInvolvedArray', ['userIdInvolvedArray']),
+    []
+  );
 
   /** 開始日 */
-  const onChangeStartDate = useCallback((value: Date | null) => {
-    setForm(({ data, error }) => {
-      const newData = { ...data, startDate: value };
-      return {
-        data: newData,
-        error: {
-          ...error,
-          startDate: validators.startDate(newData),
-          endDate: validators.endDate(newData),
-        },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeStartDate = useCallback(
+    createOnChangeField('startDate', ['startDate', 'endDate']),
+    []
+  );
 
   /** 終了日 */
-  const onChangeEndDate = useCallback((value: Date | null) => {
-    setForm(({ data, error }) => {
-      const newData = { ...data, endDate: value };
-      return {
-        data: newData,
-        error: {
-          ...error,
-          startDate: validators.startDate(newData),
-          endDate: validators.endDate(newData),
-          endCondition: validators.endCondition(newData),
-        },
-        isDirty: true,
-      };
-    });
-  }, []);
+  const onChangeEndDate = useCallback(
+    createOnChangeField('endDate', ['startDate', 'endDate', 'endCondition']),
+    []
+  );
 
   /** 終了条件 */
   const onChangeEndCondition = useCallback(
-    (e: ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.currentTarget.value;
-      setForm(({ data, error }) => {
-        const newData = { ...data, endCondition: value };
-        return {
-          data: newData,
-          error: {
-            ...error,
-            endCondition: validators.endCondition(newData),
-          },
-          isDirty: true,
-        };
-      });
-    },
+    createOnChangeField(
+      'endCondition',
+      ['endCondition'],
+      (e: ChangeEvent<HTMLTextAreaElement>) => {
+        return e.currentTarget.value;
+      }
+    ),
     []
   );
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   /** 保存 */
   const onPost = useCallback(() => {
@@ -495,7 +474,7 @@ const validators = {
     return newErrors;
   },
   description(form) {
-    const value = form.title;
+    const value = form.description;
     const newErrors: string[] = [];
     if (value.length >= descriptionMaxLength + 1) {
       newErrors.push(`${descriptionMaxLength}文字以内`);
@@ -549,4 +528,18 @@ function validateDate(form: FormData) {
     }
   }
   return newErrors;
+}
+
+/** 指定したフィールドだけバリデーションする */
+function updateErrors(
+  formData: FormData,
+  prevErrors: FieldErrors,
+  validateTargetArray: Array<keyof FormData>
+): FieldErrors {
+  const newErrors = Object.fromEntries(
+    validateTargetArray.map((target) => {
+      return [target, validators[target](formData)];
+    })
+  );
+  return { ...prevErrors, ...newErrors };
 }

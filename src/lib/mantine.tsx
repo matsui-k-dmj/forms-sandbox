@@ -3,12 +3,12 @@ import {
   Textarea as _Textarea,
   Select as _Select,
   Button as _Button,
-  MultiSelect as _MultiSelect
+  MultiSelect as _MultiSelect,
 } from '@mantine/core';
 
 import { DateInput as _DateInput } from '@mantine/dates';
 
-import { ComponentProps, ReactNode, memo } from 'react';
+import { ComponentProps, memo } from 'react';
 
 export const TextInput = memo(function TextInput(
   props: ComponentProps<typeof _TextInput>
@@ -39,17 +39,15 @@ export const DateInput = memo(function DateInput(
 });
 
 export const Button = memo(function Button(
-  props: ComponentProps<typeof _Button<'button'>> & {
-    children?: ReactNode;
-  }
+  props: ComponentProps<typeof _Button<'button'>>
 ) {
   console.log(`Rendering Button ${props.children}`);
   return <_Button {...props}> {props.children} </_Button>;
 });
 
-export const MultiSelect  = memo(function MultiSelect (
-  props: ComponentProps<typeof _MultiSelect >
+export const MultiSelect = memo(function MultiSelect(
+  props: ComponentProps<typeof _MultiSelect>
 ) {
   console.log(`Rendering MultiSelect  ${props.label}: ${props.value}`);
-  return <_MultiSelect  {...props} />;
+  return <_MultiSelect {...props} />;
 });
