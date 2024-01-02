@@ -4,6 +4,7 @@ type TaskDetail = {
   description?: string;
   user_assingned_to?: User;
   user_verified_by?: User;
+  user_involved_array: User[];
   start_date?: string; // YYYY-MM-DD
   end_date?: string; // YYYY-MM-DD
   end_condition?: string;

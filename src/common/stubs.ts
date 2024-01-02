@@ -17,6 +17,7 @@ const constResponse: TaskDetail = {
   user_assingned_to: allUsers[4],
   start_date: '2023-05-12',
   end_condition: 'QAの確認',
+  user_involved_array: allUsers.slice(0, 2),
 };
 
 export const fetchConstTaskDetail = new Promise<TaskDetail>((resolve) =>

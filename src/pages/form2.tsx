@@ -9,7 +9,7 @@ import {
   taskTemplatesToSelectData,
   usersToSelectData,
 } from '@/common/mintine-select';
-import { Select, TextInput, Textarea, DateInput, Button } from '@/lib/mantine';
+import { Select, TextInput, Textarea, DateInput, Button, MultiSelect } from '@/lib/mantine';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ type FormData = {
   description: string;
   userIdAssingnedTo: string | null;
   userIdVerifiedBy: string | null;
+  userIdInvolvedArray: string[];
   startDate: Date | null;
   endDate: Date | null;
   endCondition: string;
@@ -48,6 +49,7 @@ export default function Form2() {
       description: '',
       userIdAssingnedTo: null,
       userIdVerifiedBy: null,
+      userIdInvolvedArray: [],
       startDate: null,
       endDate: null,
       endCondition: '',
@@ -57,6 +59,7 @@ export default function Form2() {
       description: [],
       userIdAssingnedTo: [],
       userIdVerifiedBy: [],
+      userIdInvolvedArray: [],
       startDate: [],
       endDate: [],
       endCondition: [],
@@ -198,6 +201,17 @@ export default function Form2() {
     });
   }, []);
 
+    /** 関係者 */
+  const onChangeUserIdInvolvedArray = useCallback((value: string[]) => {
+    setForm(({ data, error }) => {
+      return {
+        data: { ...data, userIdInvolvedArray: value},
+        error: {...error, userIdInvolvedArray: validateUserIdInvolvedArray(value)},
+        isDirty: true,
+      };
+    });
+  }, []);
+
   /** 開始日 */
   const onChangeStartDate = useCallback((value: Date | null) => {
     setForm(({ data, error }) => {
@@ -255,12 +269,12 @@ export default function Form2() {
     setForm((prev) => {
       const newErrors = validateForm(prev.data);
       if (Object.values(newErrors).some((errors) => errors.length > 0)) {
-        console.log(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
+        alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
         return { ...prev, error: newErrors };
       }
 
       const payload = formDataToPayload(prev.data);
-      console.log(`Submit:\n${JSON.stringify(payload, null, 2)}`);
+      alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
       return { ...prev, error: newErrors, isDirty: false };
     });
   }, []);
@@ -268,7 +282,7 @@ export default function Form2() {
   return (
     <div className="p-20">
       <div className="my-2">タスク編集</div>
-      {queryConstTaskDetail.isLoading ? (
+      {queryConstTaskDetail.isLoading || queryAllUsers.isLoading || queryTaskTemplates.isLoading ? (
         <div>Loading...</div>
       ) : (
         <>
@@ -328,6 +342,18 @@ export default function Form2() {
             />
           </div>
           <div className="my-2">
+            <MultiSelect
+              label="関係者"
+              data={optionUsers}
+              searchable
+              clearable
+              nothingFound="No options"
+              value={form.data.userIdInvolvedArray}
+              onChange={onChangeUserIdInvolvedArray}
+              error={form.error.userIdInvolvedArray.join(', ')}
+            />
+          </div>
+          <div className="my-2">
             <DateInput
               label="開始日"
               valueFormat="YYYY/MM/DD"
@@ -383,6 +409,7 @@ function responseToFormData(response: TaskDetail): FormData {
       response.user_verified_by?.id == null
         ? null
         : String(response.user_verified_by?.id),
+    userIdInvolvedArray: response.user_involved_array.map(x => String(x.id)),
     startDate:
       response.start_date == null
         ? null
@@ -432,6 +459,7 @@ function validateForm(formData: FormData): FieldErrors {
     description: validateDescription(formData.description),
     userIdAssingnedTo: usersErrors,
     userIdVerifiedBy: usersErrors,
+    userIdInvolvedArray: [],
     startDate: dateErrors,
     endDate: dateErrors,
     endCondition: validateEndCondition(formData.endDate, formData.endCondition),
@@ -470,6 +498,15 @@ function validateUsers(
     if (userIdAssingnedTo === userIdVerifiedBy) {
       newErrors.push('担当者と承認者が同じです');
     }
+  }
+  return newErrors;
+}
+
+/** 関係者 */
+function validateUserIdInvolvedArray(value: string[]) {
+  const newErrors: string[] = [];
+  if (value.length === 0) {
+    newErrors.push('必須');
   }
   return newErrors;
 }
