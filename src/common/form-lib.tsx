@@ -134,7 +134,7 @@ export const Controller = <
 >({
   control,
   target,
-  validateTargetArray,
+  validateTargetArray = [target],
   convertFn,
   render,
 }: {
@@ -148,7 +148,7 @@ export const Controller = <
     ) => FormErrors<T_FormValues>;
   };
   target: T_UpdateTarget;
-  validateTargetArray: Array<keyof T_FormValues>;
+  validateTargetArray?: Array<keyof T_FormValues>;
   convertFn?: T_ConvertFn;
   render: ({
     value,

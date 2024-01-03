@@ -223,7 +223,6 @@ export default function Form2() {
             <Controller
               control={control}
               target="title"
-              validateTargetArray={['title']}
               convertFn={(e: ChangeEvent<HTMLInputElement>) => {
                 return e.target.value;
               }}
@@ -245,7 +244,6 @@ export default function Form2() {
             <Controller
               control={control}
               target="description"
-              validateTargetArray={['description']}
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.target.value;
               }}
@@ -309,7 +307,6 @@ export default function Form2() {
             <Controller
               control={control}
               target="userIdInvolvedArray"
-              validateTargetArray={['userIdInvolvedArray']}
               render={({ value, error, onChange }) => {
                 return (
                   <MultiSelect
@@ -370,7 +367,6 @@ export default function Form2() {
             <Controller
               control={control}
               target="endCondition"
-              validateTargetArray={['endCondition']}
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.currentTarget.value;
               }}
