@@ -40,7 +40,7 @@ type FormData = {
   endCondition: string;
 };
 
-type FieldErrors = Record<keyof FormData, string[]>;
+type FormErrors = Record<keyof FormData, string[]>;
 
 const titleMaxLength = 8;
 const descriptionMaxLength = 20;
@@ -48,7 +48,7 @@ const descriptionMaxLength = 20;
 export default function Form2() {
   const [form, setForm] = useState<{
     data: FormData;
-    error: FieldErrors;
+    error: FormErrors;
     isDirty: boolean;
   }>({
     data: {
@@ -267,7 +267,7 @@ export default function Form2() {
   /** 保存 */
   const onPost = useCallback(() => {
     setForm((prev) => {
-      const newErrors = validateForm(prev.data);
+      const newErrors = validateAllFields(prev.data);
       if (Object.values(newErrors).some((errors) => errors.length > 0)) {
         alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
         return { ...prev, error: newErrors };
@@ -450,7 +450,7 @@ function formDataToPayload(formData: FormData): TaskPatchPayload {
 
 // # バリデーション
 /** フォーム全体のバリデーション */
-function validateForm(formData: FormData): FieldErrors {
+function validateAllFields(formData: FormData): FormErrors {
   const newErrors = Object.fromEntries(
     Object.keys(formData).map((key) => [
       key,
@@ -458,7 +458,7 @@ function validateForm(formData: FormData): FieldErrors {
     ])
   );
 
-  return newErrors as FieldErrors;
+  return newErrors as FormErrors;
 }
 
 type Validators = Partial<
@@ -533,9 +533,9 @@ function validateDate(form: FormData) {
 /** 指定したフィールドだけバリデーションする */
 function updateErrors(
   formData: FormData,
-  prevErrors: FieldErrors,
+  prevErrors: FormErrors,
   validateTargetArray: Array<keyof FormData>
-): FieldErrors {
+): FormErrors {
   const newErrors = Object.fromEntries(
     validateTargetArray.map((target) => {
       return [target, validateTarget(target, formData, validators)];
