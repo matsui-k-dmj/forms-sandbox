@@ -3,7 +3,6 @@ import {
   ReactNode,
   SetStateAction,
   useCallback,
-  useMemo,
   useState,
 } from 'react';
 
@@ -22,27 +21,26 @@ export type Validators<T_FormValues extends Record<string, any>> = Partial<
   Record<keyof T_FormValues, (formValues: T_FormValues) => string[]>
 >;
 
+/**
+ * @param initialValues initial values for T_FormValues
+ * @param validator should be momoized or defined outside of React component to not rerender
+ */
 export function useForm<T_FormValues extends Record<string, any>>({
-  initialValues: initialData,
+  initialValues,
   validators,
-  validatorsDeps,
 }: {
   initialValues: T_FormValues;
   validators: Validators<T_FormValues>;
-  validatorsDeps: any[];
 }) {
   type _Form = Form<T_FormValues>;
   type _FormErrors = FormErrors<T_FormValues>;
   const [form, setForm] = useState<_Form>({
-    values: initialData,
+    values: initialValues,
     errors: Object.fromEntries(
-      Object.keys(initialData).map((key) => [key, [] as string[]])
+      Object.keys(initialValues).map((key) => [key, [] as string[]])
     ) as _FormErrors,
     isDirty: false,
   });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const _validators = useMemo(() => validators, validatorsDeps);
 
   /** validator がない場合は [] を返す */
   const validateTarget = useCallback(
@@ -50,9 +48,9 @@ export function useForm<T_FormValues extends Record<string, any>>({
       target: keyof T_FormValues,
       formValues: T_FormValues
     ): string[] {
-      return _validators[target]?.(formValues) ?? [];
+      return validators[target]?.(formValues) ?? [];
     },
-    [_validators]
+    [validators]
   );
 
   /** 指定したフィールドだけバリデーションする */
@@ -109,7 +107,7 @@ export function useForm<T_FormValues extends Record<string, any>>({
     form,
     setForm,
     wrapSubmit,
-    validators: _validators,
+    validators: validators,
     control: {
       form,
       setForm,

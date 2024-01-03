@@ -27,7 +27,7 @@ import {
   fetchTaskTemplate,
 } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
-import { Controller, useForm } from '@/common/form-lib';
+import { Controller, Validators, useForm } from '@/common/form-lib';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormValues = {
@@ -62,48 +62,7 @@ export default function Form2() {
       endDate: null,
       endCondition: '',
     },
-    validators: {
-      title(form) {
-        const newErrors: string[] = [];
-        const value = form.title;
-        if (value === '') {
-          newErrors.push('必須');
-        }
-        if (value.length >= titleMaxLength + 1) {
-          newErrors.push(`${titleMaxLength}文字以内`);
-        }
-        return newErrors;
-      },
-      description(form) {
-        const value = form.description;
-        const newErrors: string[] = [];
-        if (value.length >= descriptionMaxLength + 1) {
-          newErrors.push(`${descriptionMaxLength}文字以内`);
-        }
-        return newErrors;
-      },
-      userIdAssingnedTo: validateUsers,
-      userIdVerifiedBy: validateUsers,
-      userIdInvolvedArray(form) {
-        const value = form.userIdInvolvedArray;
-        const newErrors: string[] = [];
-        if (value.length === 0) {
-          newErrors.push('必須');
-        }
-        return newErrors;
-      },
-      startDate: validateDate,
-      endDate: validateDate,
-      endCondition(form) {
-        const { endDate, endCondition } = form;
-        const newErrors: string[] = [];
-        if (endDate == null && endCondition === '') {
-          newErrors.push('終了日が未定の場合は終了条件が必要です。');
-        }
-        return newErrors;
-      },
-    },
-    validatorsDeps: [],
+    validators,
   });
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
@@ -444,6 +403,48 @@ function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
 }
 
 // # バリデーション
+
+const validators: Validators<FormValues> = {
+  title(form) {
+    const newErrors: string[] = [];
+    const value = form.title;
+    if (value === '') {
+      newErrors.push('必須');
+    }
+    if (value.length >= titleMaxLength + 1) {
+      newErrors.push(`${titleMaxLength}文字以内`);
+    }
+    return newErrors;
+  },
+  description(form) {
+    const value = form.description;
+    const newErrors: string[] = [];
+    if (value.length >= descriptionMaxLength + 1) {
+      newErrors.push(`${descriptionMaxLength}文字以内`);
+    }
+    return newErrors;
+  },
+  userIdAssingnedTo: validateUsers,
+  userIdVerifiedBy: validateUsers,
+  userIdInvolvedArray(form) {
+    const value = form.userIdInvolvedArray;
+    const newErrors: string[] = [];
+    if (value.length === 0) {
+      newErrors.push('必須');
+    }
+    return newErrors;
+  },
+  startDate: validateDate,
+  endDate: validateDate,
+  endCondition(form) {
+    const { endDate, endCondition } = form;
+    const newErrors: string[] = [];
+    if (endDate == null && endCondition === '') {
+      newErrors.push('終了日が未定の場合は終了条件が必要です。');
+    }
+    return newErrors;
+  },
+};
 
 /** 担当者, 承認者 */
 function validateUsers(form: FormValues) {
