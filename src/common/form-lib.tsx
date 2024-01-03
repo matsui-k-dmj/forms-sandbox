@@ -122,25 +122,15 @@ export function useForm<T_FormValues extends Record<string, any>>({
   };
 }
 
-type CreateOnChangeFieldFn<
-  T_FormValues,
+export const Controller = <
+  T_FormValues extends Record<string, any>,
   T_UpdateTarget extends keyof T_FormValues,
   T_ConvertFn extends
     | ((value: any) => T_FormValues[T_UpdateTarget])
     | undefined,
-  R = undefined extends T_ConvertFn
+  R extends (value: any) => void = undefined extends T_ConvertFn
     ? (value: T_FormValues[T_UpdateTarget]) => void
     : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
-> = (
-  updateTarget: T_UpdateTarget,
-  validateTargetArray: Array<keyof T_FormValues>,
-  convertFn?: T_ConvertFn
-) => R;
-
-export const Controller = <
-  T_FormValues extends Record<string, any>,
-  T_UpdateTarget extends keyof T_FormValues,
-  T_ConvertFn extends ((value: any) => T_FormValues[T_UpdateTarget]) | undefined
 >({
   control,
   updateTarget,
@@ -167,9 +157,7 @@ export const Controller = <
   }: {
     value: T_FormValues[T_UpdateTarget];
     error: FormErrors<T_FormValues>[T_UpdateTarget];
-    onChange: ReturnType<
-      CreateOnChangeFieldFn<T_FormValues, T_UpdateTarget, T_ConvertFn>
-    >;
+    onChange: R;
   }) => ReactNode;
 }) => {
   const { setForm, updateErrors } = control;
@@ -185,15 +173,12 @@ export const Controller = <
       T_UpdateTarget extends keyof T_FormValues,
       T_ConvertFn extends
         | ((value: any) => T_FormValues[T_UpdateTarget])
-        | undefined,
-      R = undefined extends T_ConvertFn
-        ? (value: T_FormValues[T_UpdateTarget]) => void
-        : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
+        | undefined
     >(
       updateTarget: T_UpdateTarget,
       validateTargetArray: Array<keyof T_FormValues>,
       convertFn?: T_ConvertFn
-    ): R => {
+    ) => {
       return ((value: any) => {
         const newValue = convertFn == null ? value : convertFn(value);
         setForm(({ values, errors }) => {
