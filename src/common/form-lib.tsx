@@ -23,11 +23,11 @@ export type Validators<T_FormData extends Record<string, any>> = Partial<
 >;
 
 export function useForm<T_FormData extends Record<string, any>>({
-  initialData,
+  initialValues: initialData,
   validators,
   validatorsDeps,
 }: {
-  initialData: T_FormData;
+  initialValues: T_FormData;
   validators: Validators<T_FormData>;
   validatorsDeps: any[];
 }) {

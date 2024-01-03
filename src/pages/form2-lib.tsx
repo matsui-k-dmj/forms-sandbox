@@ -52,7 +52,7 @@ export default function Form2() {
     control,
     utils: { updateErrors },
   } = useForm<FormData>({
-    initialData: {
+    initialValues: {
       title: '',
       description: '',
       userIdAssingnedTo: null,
