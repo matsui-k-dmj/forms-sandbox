@@ -27,6 +27,7 @@ import {
   fetchTaskTemplate,
 } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
+import { Validators, useForm } from '@/common/form-lib';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
@@ -40,18 +41,12 @@ type FormData = {
   endCondition: string;
 };
 
-type FormErrors = Record<keyof FormData, string[]>;
-
 const titleMaxLength = 8;
 const descriptionMaxLength = 20;
 
 export default function Form2() {
-  const [form, setForm] = useState<{
-    data: FormData;
-    error: FormErrors;
-    isDirty: boolean;
-  }>({
-    data: {
+  const { form, setForm, createOnChangeField, wrapSubmit } = useForm<FormData>({
+    initialData: {
       title: '',
       description: '',
       userIdAssingnedTo: null,
@@ -61,49 +56,8 @@ export default function Form2() {
       endDate: null,
       endCondition: '',
     },
-    error: {
-      title: [],
-      description: [],
-      userIdAssingnedTo: [],
-      userIdVerifiedBy: [],
-      userIdInvolvedArray: [],
-      startDate: [],
-      endDate: [],
-      endCondition: [],
-    },
-    isDirty: false,
+    validators,
   });
-
-  /**
-   * UIコンポーネントの onChange に渡す関数のファクトリー
-   * @param updateTarget 更新するフィールド名
-   * @param validateTargetArray バリデーションするフィールド名の配列
-   * @param convertFn (Optional) UIコンポーネントの onChange の引数を FormData 用に変換する
-   * @returns UIコンポーネントの onChange に渡す関数
-   */
-  const createOnChangeField = <
-    T_UpdateTarget extends keyof FormData,
-    T_ConvertFn extends ((value: any) => FormData[T_UpdateTarget]) | undefined,
-    R = undefined extends T_ConvertFn
-      ? (value: FormData[T_UpdateTarget]) => void
-      : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
-  >(
-    updateTarget: T_UpdateTarget,
-    validateTargetArray: Array<keyof FormData>,
-    convertFn?: T_ConvertFn
-  ): R => {
-    return ((value: any) => {
-      const newValue = convertFn == null ? value : convertFn(value);
-      setForm(({ data, error }) => {
-        const newData = { ...data, [updateTarget]: newValue };
-        return {
-          data: newData,
-          error: updateErrors(newData, error, validateTargetArray),
-          isDirty: true,
-        };
-      });
-    }) as R;
-  };
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
@@ -126,7 +80,7 @@ export default function Form2() {
       ...prev,
       data: responseToFormData(queryConstTaskDetail.data),
     }));
-  }, [queryConstTaskDetail.data]);
+  }, [queryConstTaskDetail.data, setForm]);
 
   const queryAllUsers = useQuery({
     queryKey: ['AllUsers'],
@@ -178,14 +132,14 @@ export default function Form2() {
           data: newData,
           error: {
             ...error,
-            title: validateTarget('title', newData, validators),
-            description: validateTarget('description', newData, validators),
+            title: validators.title(data),
+            description: validators.description(data),
           },
           isDirty: true,
         };
       });
     },
-    [queryTaskTemplates.data]
+    [queryTaskTemplates.data, setForm]
   );
 
   // elint は createOnChangeField の中身まで読まないので、useCallback の依存対象が分からない
@@ -262,22 +216,20 @@ export default function Form2() {
     ),
     []
   );
-  /* eslint-enable react-hooks/exhaustive-deps */
 
-  /** 保存 */
-  const onPost = useCallback(() => {
-    setForm((prev) => {
-      const newErrors = validateAllFields(prev.data);
-      if (Object.values(newErrors).some((errors) => errors.length > 0)) {
-        alert(`Errors:\n${JSON.stringify(newErrors, null, 2)}`);
-        return { ...prev, error: newErrors };
+  const onPost = useCallback(
+    wrapSubmit(
+      (formData) => {
+        const payload = formDataToPayload(formData);
+        alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
+      },
+      (formErrors) => {
+        alert(`Errors:\n${JSON.stringify(formErrors, null, 2)}`);
       }
-
-      const payload = formDataToPayload(prev.data);
-      alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
-      return { ...prev, error: newErrors, isDirty: false };
-    });
-  }, []);
+    ),
+    []
+  );
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="p-20">
@@ -377,17 +329,15 @@ export default function Form2() {
               error={form.error.endDate.join(', ')}
             />
           </div>
-          {form.data.endDate == null && (
-            <div className="my-2">
-              <Textarea
-                label="終了条件"
-                value={form.data.endCondition}
-                onChange={onChangeEndCondition}
-                error={form.error.endCondition.join(', ')}
-                withAsterisk={form.data.endDate == null}
-              />
-            </div>
-          )}
+          <div className="my-2">
+            <Textarea
+              label="終了条件"
+              value={form.data.endCondition}
+              onChange={onChangeEndCondition}
+              error={form.error.endCondition.join(', ')}
+              withAsterisk={form.data.endDate == null}
+            />
+          </div>
           <div>
             <Button onClick={onPost}>保存</Button>
           </div>
@@ -449,22 +399,8 @@ function formDataToPayload(formData: FormData): TaskPatchPayload {
 }
 
 // # バリデーション
-/** フォーム全体のバリデーション */
-function validateAllFields(formData: FormData): FormErrors {
-  const newErrors = Object.fromEntries(
-    Object.keys(formData).map((key) => [
-      key,
-      validateTarget(key as keyof FormData, formData, validators),
-    ])
-  );
 
-  return newErrors as FormErrors;
-}
-
-type Validators = Partial<
-  Record<keyof FormData, (formData: FormData) => string[]>
->;
-const validators: Validators = {
+const validators = {
   title(form) {
     const newErrors: string[] = [];
     const value = form.title;
@@ -504,7 +440,7 @@ const validators: Validators = {
     }
     return newErrors;
   },
-};
+} as const satisfies Validators<FormData>;
 
 /** 担当者, 承認者 */
 function validateUsers(form: FormData) {
@@ -528,27 +464,4 @@ function validateDate(form: FormData) {
     }
   }
   return newErrors;
-}
-
-/** 指定したフィールドだけバリデーションする */
-function updateErrors(
-  formData: FormData,
-  prevErrors: FormErrors,
-  validateTargetArray: Array<keyof FormData>
-): FormErrors {
-  const newErrors = Object.fromEntries(
-    validateTargetArray.map((target) => {
-      return [target, validateTarget(target, formData, validators)];
-    })
-  );
-  return { ...prevErrors, ...newErrors };
-}
-
-/** validator がない場合は [] を返す */
-function validateTarget(
-  target: keyof FormData,
-  formData: FormData,
-  validators: Validators
-): string[] {
-  return validators[target]?.(formData) ?? [];
 }
