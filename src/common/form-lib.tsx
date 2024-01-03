@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export type FormErrors<T_FormData extends Record<string, any>> = Record<
   keyof T_FormData,
@@ -15,15 +15,14 @@ export type Validators<T_FormData extends Record<string, any>> = Partial<
   Record<keyof T_FormData, (formData: T_FormData) => string[]>
 >;
 
-export function useForm<
-  T_FormData extends Record<string, any>,
-  const T_Validators extends Validators<T_FormData> = Validators<T_FormData>
->({
+export function useForm<T_FormData extends Record<string, any>>({
   initialData,
   validators,
+  validatorsDeps,
 }: {
   initialData: T_FormData;
-  validators: T_Validators;
+  validators: Validators<T_FormData>;
+  validatorsDeps: any[];
 }) {
   type _Form = Form<T_FormData>;
   type _FormErrors = FormErrors<T_FormData>;
@@ -35,15 +34,19 @@ export function useForm<
     isDirty: false,
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const _validators = useMemo(() => validators, validatorsDeps);
+
   /** validator がない場合は [] を返す */
-  const validateTarget = useCallback(function validateTarget(
-    target: keyof T_FormData,
-    formData: T_FormData,
-    validators: T_Validators
-  ): string[] {
-    return validators[target]?.(formData) ?? [];
-  },
-  []);
+  const validateTarget = useCallback(
+    function validateTarget(
+      target: keyof T_FormData,
+      formData: T_FormData
+    ): string[] {
+      return _validators[target]?.(formData) ?? [];
+    },
+    [_validators]
+  );
 
   /** 指定したフィールドだけバリデーションする */
   const updateErrors = useCallback(
@@ -54,12 +57,12 @@ export function useForm<
     ): _FormErrors {
       const newErrors = Object.fromEntries(
         validateTargetArray.map((target) => {
-          return [target, validateTarget(target, formData, validators)];
+          return [target, validateTarget(target, formData)];
         })
       );
       return { ...prevErrors, ...newErrors };
     },
-    [validateTarget, validators]
+    [validateTarget]
   );
 
   /**
@@ -104,13 +107,13 @@ export function useForm<
       const newErrors = Object.fromEntries(
         Object.keys(formData).map((key) => [
           key,
-          validateTarget(key as keyof T_FormData, formData, validators),
+          validateTarget(key as keyof T_FormData, formData),
         ])
       );
 
       return newErrors as _FormErrors;
     },
-    [validateTarget, validators]
+    [validateTarget]
   );
 
   function wrapSubmit(
@@ -136,5 +139,10 @@ export function useForm<
     setForm,
     createOnChangeField,
     wrapSubmit,
+    validators: _validators,
+    utils: {
+      validateTarget,
+      updateErrors,
+    },
   };
 }

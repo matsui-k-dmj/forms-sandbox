@@ -45,7 +45,13 @@ const titleMaxLength = 8;
 const descriptionMaxLength = 20;
 
 export default function Form2() {
-  const { form, setForm, createOnChangeField, wrapSubmit } = useForm<FormData>({
+  const {
+    form,
+    setForm,
+    createOnChangeField,
+    wrapSubmit,
+    utils: { updateErrors },
+  } = useForm<FormData>({
     initialData: {
       title: '',
       description: '',
@@ -56,7 +62,48 @@ export default function Form2() {
       endDate: null,
       endCondition: '',
     },
-    validators,
+    validators: {
+      title(form) {
+        const newErrors: string[] = [];
+        const value = form.title;
+        if (value === '') {
+          newErrors.push('必須');
+        }
+        if (value.length >= titleMaxLength + 1) {
+          newErrors.push(`${titleMaxLength}文字以内`);
+        }
+        return newErrors;
+      },
+      description(form) {
+        const value = form.description;
+        const newErrors: string[] = [];
+        if (value.length >= descriptionMaxLength + 1) {
+          newErrors.push(`${descriptionMaxLength}文字以内`);
+        }
+        return newErrors;
+      },
+      userIdAssingnedTo: validateUsers,
+      userIdVerifiedBy: validateUsers,
+      userIdInvolvedArray(form) {
+        const value = form.userIdInvolvedArray;
+        const newErrors: string[] = [];
+        if (value.length === 0) {
+          newErrors.push('必須');
+        }
+        return newErrors;
+      },
+      startDate: validateDate,
+      endDate: validateDate,
+      endCondition(form) {
+        const { endDate, endCondition } = form;
+        const newErrors: string[] = [];
+        if (endDate == null && endCondition === '') {
+          newErrors.push('終了日が未定の場合は終了条件が必要です。');
+        }
+        return newErrors;
+      },
+    },
+    validatorsDeps: [],
   });
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
@@ -130,16 +177,12 @@ export default function Form2() {
         };
         return {
           data: newData,
-          error: {
-            ...error,
-            title: validators.title(data),
-            description: validators.description(data),
-          },
+          error: updateErrors(newData, error, ['title', 'description']),
           isDirty: true,
         };
       });
     },
-    [queryTaskTemplates.data, setForm]
+    [queryTaskTemplates.data, setForm, updateErrors]
   );
 
   // elint は createOnChangeField の中身まで読まないので、useCallback の依存対象が分からない
@@ -399,48 +442,6 @@ function formDataToPayload(formData: FormData): TaskPatchPayload {
 }
 
 // # バリデーション
-
-const validators = {
-  title(form) {
-    const newErrors: string[] = [];
-    const value = form.title;
-    if (value === '') {
-      newErrors.push('必須');
-    }
-    if (value.length >= titleMaxLength + 1) {
-      newErrors.push(`${titleMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  description(form) {
-    const value = form.description;
-    const newErrors: string[] = [];
-    if (value.length >= descriptionMaxLength + 1) {
-      newErrors.push(`${descriptionMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  userIdAssingnedTo: validateUsers,
-  userIdVerifiedBy: validateUsers,
-  userIdInvolvedArray(form) {
-    const value = form.userIdInvolvedArray;
-    const newErrors: string[] = [];
-    if (value.length === 0) {
-      newErrors.push('必須');
-    }
-    return newErrors;
-  },
-  startDate: validateDate,
-  endDate: validateDate,
-  endCondition(form) {
-    const { endDate, endCondition } = form;
-    const newErrors: string[] = [];
-    if (endDate == null && endCondition === '') {
-      newErrors.push('終了日が未定の場合は終了条件が必要です。');
-    }
-    return newErrors;
-  },
-} as const satisfies Validators<FormData>;
 
 /** 担当者, 承認者 */
 function validateUsers(form: FormData) {
