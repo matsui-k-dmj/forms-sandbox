@@ -169,7 +169,7 @@ export default function Form2() {
       const selectedTemplate = queryTaskTemplates.data?.find(
         (template) => String(template.id) === value
       );
-      setForm(({ values, error }) => {
+      setForm(({ values, errors }) => {
         const newValues = {
           ...values,
           title: selectedTemplate?.title ?? '',
@@ -177,7 +177,7 @@ export default function Form2() {
         };
         return {
           values: newValues,
-          error: updateErrors(newValues, error, ['title', 'description']),
+          errors: updateErrors(newValues, errors, ['title', 'description']),
           isDirty: true,
         };
       });

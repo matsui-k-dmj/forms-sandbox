@@ -14,7 +14,7 @@ export type FormErrors<T_FormValues extends Record<string, any>> = Record<
 
 export type Form<T_FormValues extends Record<string, any>> = {
   values: T_FormValues;
-  error: FormErrors<T_FormValues>;
+  errors: FormErrors<T_FormValues>;
   isDirty: boolean;
 };
 
@@ -35,7 +35,7 @@ export function useForm<T_FormValues extends Record<string, any>>({
   type _FormErrors = FormErrors<T_FormValues>;
   const [form, setForm] = useState<_Form>({
     values: initialData,
-    error: Object.fromEntries(
+    errors: Object.fromEntries(
       Object.keys(initialData).map((key) => [key, [] as string[]])
     ) as _FormErrors,
     isDirty: false,
@@ -96,11 +96,11 @@ export function useForm<T_FormValues extends Record<string, any>>({
         const newErrors = validateAllFields(prev.values);
         if (Object.values(newErrors).some((errors) => errors.length > 0)) {
           errorFn(newErrors);
-          return { ...prev, error: newErrors };
+          return { ...prev, errors: newErrors };
         }
 
         submitFn(prev.values);
-        return { ...prev, error: newErrors, isDirty: false };
+        return { ...prev, errors: newErrors, isDirty: false };
       });
     };
   }
@@ -196,11 +196,11 @@ export const Controller = <
     ): R => {
       return ((value: any) => {
         const newValue = convertFn == null ? value : convertFn(value);
-        setForm(({ values, error }) => {
+        setForm(({ values, errors }) => {
           const newValues = { ...values, [updateTarget]: newValue };
           return {
             values: newValues,
-            error: updateErrors(newValues, error, validateTargetArray),
+            errors: updateErrors(newValues, errors, validateTargetArray),
             isDirty: true,
           };
         });
@@ -218,7 +218,7 @@ export const Controller = <
     <>
       {render({
         value: control.form.values[updateTarget],
-        error: control.form.error[updateTarget],
+        error: control.form.errors[updateTarget],
         onChange,
       })}
     </>
