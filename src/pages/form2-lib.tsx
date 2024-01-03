@@ -1,5 +1,5 @@
 /**
- * form1 のdata, error, isDirty をまとめて一つのstateにする
+ * form1 の values, errors, isDirty をまとめて一つのstateにする
  * useCallbackの依存関係が減ってる。
  * 更新時にerror とか isDirtyについて考える必要があるから、忘れにくそう。
  * onPost でも setForm の中でいろいろやれれば, formへの依存がなくなってrerenderしなくて良くなる
@@ -125,7 +125,7 @@ export default function Form2() {
     if (queryConstTaskDetail.data == null) return;
     setForm((prev) => ({
       ...prev,
-      data: responseToFormValues(queryConstTaskDetail.data),
+      values: responseToFormValues(queryConstTaskDetail.data),
     }));
   }, [queryConstTaskDetail.data, setForm]);
 
@@ -169,15 +169,15 @@ export default function Form2() {
       const selectedTemplate = queryTaskTemplates.data?.find(
         (template) => String(template.id) === value
       );
-      setForm(({ data, error }) => {
-        const newData = {
-          ...data,
+      setForm(({ values, error }) => {
+        const newValues = {
+          ...values,
           title: selectedTemplate?.title ?? '',
           description: selectedTemplate?.description ?? '',
         };
         return {
-          data: newData,
-          error: updateErrors(newData, error, ['title', 'description']),
+          values: newValues,
+          error: updateErrors(newValues, error, ['title', 'description']),
           isDirty: true,
         };
       });
@@ -227,12 +227,12 @@ export default function Form2() {
               convertFn={(e: ChangeEvent<HTMLInputElement>) => {
                 return e.target.value;
               }}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <TextInput
                     label="タイトル"
                     withAsterisk
-                    value={data}
+                    value={value}
                     error={error.join(', ')}
                     onChange={onChange}
                     maxLength={titleMaxLength + 1}
@@ -249,11 +249,11 @@ export default function Form2() {
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.target.value;
               }}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <Textarea
                     label="説明"
-                    value={data}
+                    value={value}
                     onChange={onChange}
                     maxLength={descriptionMaxLength + 1}
                     error={error.join(', ')}
@@ -267,7 +267,7 @@ export default function Form2() {
               control={control}
               updateTarget="userIdAssingnedTo"
               validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <Select
                     label="担当者"
@@ -275,7 +275,7 @@ export default function Form2() {
                     searchable
                     clearable
                     nothingFound="No options"
-                    value={data}
+                    value={value}
                     onChange={onChange}
                     error={error.join(', ')}
                   />
@@ -289,7 +289,7 @@ export default function Form2() {
               control={control}
               updateTarget="userIdVerifiedBy"
               validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <Select
                     label="承認者"
@@ -297,7 +297,7 @@ export default function Form2() {
                     searchable
                     clearable
                     nothingFound="No options"
-                    value={data}
+                    value={value}
                     onChange={onChange}
                     error={error.join(', ')}
                   />
@@ -310,7 +310,7 @@ export default function Form2() {
               control={control}
               updateTarget="userIdInvolvedArray"
               validateTargetArray={['userIdInvolvedArray']}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <MultiSelect
                     label="関係者"
@@ -318,7 +318,7 @@ export default function Form2() {
                     searchable
                     clearable
                     nothingFound="No options"
-                    value={data}
+                    value={value}
                     onChange={onChange}
                     error={error.join(', ')}
                   />
@@ -331,14 +331,14 @@ export default function Form2() {
               control={control}
               updateTarget="startDate"
               validateTargetArray={['startDate', 'endDate']}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <DateInput
                     label="開始日"
                     valueFormat="YYYY/MM/DD"
                     clearable
-                    value={data}
-                    maxDate={form.data.endDate ?? undefined}
+                    value={value}
+                    maxDate={form.values.endDate ?? undefined}
                     onChange={onChange}
                     error={error.join(', ')}
                   />
@@ -351,14 +351,14 @@ export default function Form2() {
               control={control}
               updateTarget="endDate"
               validateTargetArray={['startDate', 'endDate', 'endCondition']}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <DateInput
                     label="終了日"
                     valueFormat="YYYY/MM/DD"
                     clearable
-                    value={data}
-                    minDate={form.data.startDate ?? undefined}
+                    value={value}
+                    minDate={form.values.startDate ?? undefined}
                     onChange={onChange}
                     error={error.join(', ')}
                   />
@@ -374,14 +374,14 @@ export default function Form2() {
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.currentTarget.value;
               }}
-              render={({ data, error, onChange }) => {
+              render={({ value, error, onChange }) => {
                 return (
                   <Textarea
                     label="終了条件"
-                    value={data}
+                    value={value}
                     onChange={onChange}
                     error={error.join(', ')}
-                    withAsterisk={form.data.endDate == null}
+                    withAsterisk={form.values.endDate == null}
                   />
                 );
               }}

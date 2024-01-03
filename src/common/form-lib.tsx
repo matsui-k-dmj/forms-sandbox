@@ -13,7 +13,7 @@ export type FormErrors<T_FormValues extends Record<string, any>> = Record<
 >;
 
 export type Form<T_FormValues extends Record<string, any>> = {
-  data: T_FormValues;
+  values: T_FormValues;
   error: FormErrors<T_FormValues>;
   isDirty: boolean;
 };
@@ -34,7 +34,7 @@ export function useForm<T_FormValues extends Record<string, any>>({
   type _Form = Form<T_FormValues>;
   type _FormErrors = FormErrors<T_FormValues>;
   const [form, setForm] = useState<_Form>({
-    data: initialData,
+    values: initialData,
     error: Object.fromEntries(
       Object.keys(initialData).map((key) => [key, [] as string[]])
     ) as _FormErrors,
@@ -93,13 +93,13 @@ export function useForm<T_FormValues extends Record<string, any>>({
   ) {
     return () => {
       setForm((prev) => {
-        const newErrors = validateAllFields(prev.data);
+        const newErrors = validateAllFields(prev.values);
         if (Object.values(newErrors).some((errors) => errors.length > 0)) {
           errorFn(newErrors);
           return { ...prev, error: newErrors };
         }
 
-        submitFn(prev.data);
+        submitFn(prev.values);
         return { ...prev, error: newErrors, isDirty: false };
       });
     };
@@ -161,11 +161,11 @@ export const Controller = <
   validateTargetArray: Array<keyof T_FormValues>;
   convertFn?: T_ConvertFn;
   render: ({
-    data,
+    value,
     error,
     onChange,
   }: {
-    data: T_FormValues[T_UpdateTarget];
+    value: T_FormValues[T_UpdateTarget];
     error: FormErrors<T_FormValues>[T_UpdateTarget];
     onChange: ReturnType<
       CreateOnChangeFieldFn<T_FormValues, T_UpdateTarget, T_ConvertFn>
@@ -196,11 +196,11 @@ export const Controller = <
     ): R => {
       return ((value: any) => {
         const newValue = convertFn == null ? value : convertFn(value);
-        setForm(({ data, error }) => {
-          const newData = { ...data, [updateTarget]: newValue };
+        setForm(({ values, error }) => {
+          const newValues = { ...values, [updateTarget]: newValue };
           return {
-            data: newData,
-            error: updateErrors(newData, error, validateTargetArray),
+            values: newValues,
+            error: updateErrors(newValues, error, validateTargetArray),
             isDirty: true,
           };
         });
@@ -217,7 +217,7 @@ export const Controller = <
   return (
     <>
       {render({
-        data: control.form.data[updateTarget],
+        value: control.form.values[updateTarget],
         error: control.form.error[updateTarget],
         onChange,
       })}
