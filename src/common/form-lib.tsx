@@ -7,32 +7,32 @@ import {
   useState,
 } from 'react';
 
-export type FormErrors<T_FormData extends Record<string, any>> = Record<
-  keyof T_FormData,
+export type FormErrors<T_FormValues extends Record<string, any>> = Record<
+  keyof T_FormValues,
   string[]
 >;
 
-export type Form<T_FormData extends Record<string, any>> = {
-  data: T_FormData;
-  error: FormErrors<T_FormData>;
+export type Form<T_FormValues extends Record<string, any>> = {
+  data: T_FormValues;
+  error: FormErrors<T_FormValues>;
   isDirty: boolean;
 };
 
-export type Validators<T_FormData extends Record<string, any>> = Partial<
-  Record<keyof T_FormData, (formData: T_FormData) => string[]>
+export type Validators<T_FormValues extends Record<string, any>> = Partial<
+  Record<keyof T_FormValues, (formValues: T_FormValues) => string[]>
 >;
 
-export function useForm<T_FormData extends Record<string, any>>({
+export function useForm<T_FormValues extends Record<string, any>>({
   initialValues: initialData,
   validators,
   validatorsDeps,
 }: {
-  initialValues: T_FormData;
-  validators: Validators<T_FormData>;
+  initialValues: T_FormValues;
+  validators: Validators<T_FormValues>;
   validatorsDeps: any[];
 }) {
-  type _Form = Form<T_FormData>;
-  type _FormErrors = FormErrors<T_FormData>;
+  type _Form = Form<T_FormValues>;
+  type _FormErrors = FormErrors<T_FormValues>;
   const [form, setForm] = useState<_Form>({
     data: initialData,
     error: Object.fromEntries(
@@ -47,10 +47,10 @@ export function useForm<T_FormData extends Record<string, any>>({
   /** validator がない場合は [] を返す */
   const validateTarget = useCallback(
     function validateTarget(
-      target: keyof T_FormData,
-      formData: T_FormData
+      target: keyof T_FormValues,
+      formValues: T_FormValues
     ): string[] {
-      return _validators[target]?.(formData) ?? [];
+      return _validators[target]?.(formValues) ?? [];
     },
     [_validators]
   );
@@ -58,13 +58,13 @@ export function useForm<T_FormData extends Record<string, any>>({
   /** 指定したフィールドだけバリデーションする */
   const updateErrors = useCallback(
     function updateErrors(
-      formData: T_FormData,
+      formValues: T_FormValues,
       prevErrors: _FormErrors,
-      validateTargetArray: Array<keyof T_FormData>
+      validateTargetArray: Array<keyof T_FormValues>
     ): _FormErrors {
       const newErrors = Object.fromEntries(
         validateTargetArray.map((target) => {
-          return [target, validateTarget(target, formData)];
+          return [target, validateTarget(target, formValues)];
         })
       );
       return { ...prevErrors, ...newErrors };
@@ -74,11 +74,11 @@ export function useForm<T_FormData extends Record<string, any>>({
 
   /** フォーム全体のバリデーション */
   const validateAllFields = useCallback(
-    function validateAllFields(formData: T_FormData): _FormErrors {
+    function validateAllFields(formValues: T_FormValues): _FormErrors {
       const newErrors = Object.fromEntries(
-        Object.keys(formData).map((key) => [
+        Object.keys(formValues).map((key) => [
           key,
-          validateTarget(key as keyof T_FormData, formData),
+          validateTarget(key as keyof T_FormValues, formValues),
         ])
       );
 
@@ -88,7 +88,7 @@ export function useForm<T_FormData extends Record<string, any>>({
   );
 
   function wrapSubmit(
-    submitFn: (formData: T_FormData) => void,
+    submitFn: (formValues: T_FormValues) => void,
     errorFn: (form: _FormErrors) => void
   ) {
     return () => {
@@ -123,22 +123,24 @@ export function useForm<T_FormData extends Record<string, any>>({
 }
 
 type CreateOnChangeFieldFn<
-  T_FormData,
-  T_UpdateTarget extends keyof T_FormData,
-  T_ConvertFn extends ((value: any) => T_FormData[T_UpdateTarget]) | undefined,
+  T_FormValues,
+  T_UpdateTarget extends keyof T_FormValues,
+  T_ConvertFn extends
+    | ((value: any) => T_FormValues[T_UpdateTarget])
+    | undefined,
   R = undefined extends T_ConvertFn
-    ? (value: T_FormData[T_UpdateTarget]) => void
+    ? (value: T_FormValues[T_UpdateTarget]) => void
     : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
 > = (
   updateTarget: T_UpdateTarget,
-  validateTargetArray: Array<keyof T_FormData>,
+  validateTargetArray: Array<keyof T_FormValues>,
   convertFn?: T_ConvertFn
 ) => R;
 
 export const Controller = <
-  T_FormData extends Record<string, any>,
-  T_UpdateTarget extends keyof T_FormData,
-  T_ConvertFn extends ((value: any) => T_FormData[T_UpdateTarget]) | undefined
+  T_FormValues extends Record<string, any>,
+  T_UpdateTarget extends keyof T_FormValues,
+  T_ConvertFn extends ((value: any) => T_FormValues[T_UpdateTarget]) | undefined
 >({
   control,
   updateTarget,
@@ -147,26 +149,26 @@ export const Controller = <
   render,
 }: {
   control: {
-    form: Form<T_FormData>;
-    setForm: Dispatch<SetStateAction<Form<T_FormData>>>;
+    form: Form<T_FormValues>;
+    setForm: Dispatch<SetStateAction<Form<T_FormValues>>>;
     updateErrors: (
-      formData: T_FormData,
-      prevErrors: FormErrors<T_FormData>,
-      validateTargetArray: Array<keyof T_FormData>
-    ) => FormErrors<T_FormData>;
+      formValues: T_FormValues,
+      prevErrors: FormErrors<T_FormValues>,
+      validateTargetArray: Array<keyof T_FormValues>
+    ) => FormErrors<T_FormValues>;
   };
   updateTarget: T_UpdateTarget;
-  validateTargetArray: Array<keyof T_FormData>;
+  validateTargetArray: Array<keyof T_FormValues>;
   convertFn?: T_ConvertFn;
   render: ({
     data,
     error,
     onChange,
   }: {
-    data: T_FormData[T_UpdateTarget];
-    error: FormErrors<T_FormData>[T_UpdateTarget];
+    data: T_FormValues[T_UpdateTarget];
+    error: FormErrors<T_FormValues>[T_UpdateTarget];
     onChange: ReturnType<
-      CreateOnChangeFieldFn<T_FormData, T_UpdateTarget, T_ConvertFn>
+      CreateOnChangeFieldFn<T_FormValues, T_UpdateTarget, T_ConvertFn>
     >;
   }) => ReactNode;
 }) => {
@@ -175,21 +177,21 @@ export const Controller = <
    * UIコンポーネントの onChange に渡す関数のファクトリー
    * @param updateTarget 更新するフィールド名
    * @param validateTargetArray バリデーションするフィールド名の配列
-   * @param convertFn (Optional) UIコンポーネントの onChange の引数を FormData 用に変換する
+   * @param convertFn (Optional) UIコンポーネントの onChange の引数を formValues 用に変換する
    * @returns UIコンポーネントの onChange に渡す関数
    */
   const createOnChangeField = useCallback(
     <
-      T_UpdateTarget extends keyof T_FormData,
+      T_UpdateTarget extends keyof T_FormValues,
       T_ConvertFn extends
-        | ((value: any) => T_FormData[T_UpdateTarget])
+        | ((value: any) => T_FormValues[T_UpdateTarget])
         | undefined,
       R = undefined extends T_ConvertFn
-        ? (value: T_FormData[T_UpdateTarget]) => void
+        ? (value: T_FormValues[T_UpdateTarget]) => void
         : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
     >(
       updateTarget: T_UpdateTarget,
-      validateTargetArray: Array<keyof T_FormData>,
+      validateTargetArray: Array<keyof T_FormValues>,
       convertFn?: T_ConvertFn
     ): R => {
       return ((value: any) => {

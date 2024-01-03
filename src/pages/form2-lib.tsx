@@ -30,7 +30,7 @@ import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
 import { Controller, useForm } from '@/common/form-lib';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
-type FormData = {
+type FormValues = {
   title: string;
   description: string;
   userIdAssingnedTo: string | null;
@@ -51,7 +51,7 @@ export default function Form2() {
     wrapSubmit,
     control,
     utils: { updateErrors },
-  } = useForm<FormData>({
+  } = useForm<FormValues>({
     initialValues: {
       title: '',
       description: '',
@@ -125,7 +125,7 @@ export default function Form2() {
     if (queryConstTaskDetail.data == null) return;
     setForm((prev) => ({
       ...prev,
-      data: responseToFormData(queryConstTaskDetail.data),
+      data: responseToFormValues(queryConstTaskDetail.data),
     }));
   }, [queryConstTaskDetail.data, setForm]);
 
@@ -188,8 +188,8 @@ export default function Form2() {
   // eslint-disable-next-line
   const onPost = useCallback(
     wrapSubmit(
-      (formData) => {
-        const payload = formDataToPayload(formData);
+      (formValues) => {
+        const payload = formValuesToPayload(formValues);
         alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
       },
       (formErrors) => {
@@ -398,7 +398,7 @@ export default function Form2() {
 
 // # API との変換
 
-function responseToFormData(response: TaskDetail): FormData {
+function responseToFormValues(response: TaskDetail): FormValues {
   return {
     title: response.title,
     description: response.description ?? '',
@@ -423,34 +423,34 @@ function responseToFormData(response: TaskDetail): FormData {
   };
 }
 
-function formDataToPayload(formData: FormData): TaskPatchPayload {
+function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
   return {
-    title: formData.title,
-    description: formData.description || null,
+    title: formValues.title,
+    description: formValues.description || null,
     user_id_assingned_to:
-      formData.userIdAssingnedTo == null
+      formValues.userIdAssingnedTo == null
         ? null
-        : Number(formData.userIdAssingnedTo),
+        : Number(formValues.userIdAssingnedTo),
     user_id_verified_by:
-      formData.userIdVerifiedBy == null
+      formValues.userIdVerifiedBy == null
         ? null
-        : Number(formData.userIdVerifiedBy),
+        : Number(formValues.userIdVerifiedBy),
     start_date:
-      formData.startDate == null
+      formValues.startDate == null
         ? null
-        : dayjs(formData.startDate).format('YYYY-MM-DD'),
+        : dayjs(formValues.startDate).format('YYYY-MM-DD'),
     end_date:
-      formData.endDate == null
+      formValues.endDate == null
         ? null
-        : dayjs(formData.endDate).format('YYYY-MM-DD'),
-    end_condition: formData.endCondition || null,
+        : dayjs(formValues.endDate).format('YYYY-MM-DD'),
+    end_condition: formValues.endCondition || null,
   };
 }
 
 // # バリデーション
 
 /** 担当者, 承認者 */
-function validateUsers(form: FormData) {
+function validateUsers(form: FormValues) {
   const { userIdAssingnedTo, userIdVerifiedBy } = form;
   const newErrors: string[] = [];
   if (userIdAssingnedTo != null && userIdVerifiedBy != null) {
@@ -462,7 +462,7 @@ function validateUsers(form: FormData) {
 }
 
 /** 開始日, 終了日 */
-function validateDate(form: FormData) {
+function validateDate(form: FormValues) {
   const { startDate, endDate } = form;
   const newErrors: string[] = [];
   if (startDate != null && endDate != null) {
