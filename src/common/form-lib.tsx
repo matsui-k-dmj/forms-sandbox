@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import {
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 
 export type FormErrors<T_FormData extends Record<string, any>> = Record<
   keyof T_FormData,
@@ -65,42 +72,6 @@ export function useForm<T_FormData extends Record<string, any>>({
     [validateTarget]
   );
 
-  /**
-   * UIコンポーネントの onChange に渡す関数のファクトリー
-   * @param updateTarget 更新するフィールド名
-   * @param validateTargetArray バリデーションするフィールド名の配列
-   * @param convertFn (Optional) UIコンポーネントの onChange の引数を FormData 用に変換する
-   * @returns UIコンポーネントの onChange に渡す関数
-   */
-  const createOnChangeField = useCallback(
-    <
-      T_UpdateTarget extends keyof T_FormData,
-      T_ConvertFn extends
-        | ((value: any) => T_FormData[T_UpdateTarget])
-        | undefined,
-      R = undefined extends T_ConvertFn
-        ? (value: T_FormData[T_UpdateTarget]) => void
-        : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
-    >(
-      updateTarget: T_UpdateTarget,
-      validateTargetArray: Array<keyof T_FormData>,
-      convertFn?: T_ConvertFn
-    ): R => {
-      return ((value: any) => {
-        const newValue = convertFn == null ? value : convertFn(value);
-        setForm(({ data, error }) => {
-          const newData = { ...data, [updateTarget]: newValue };
-          return {
-            data: newData,
-            error: updateErrors(newData, error, validateTargetArray),
-            isDirty: true,
-          };
-        });
-      }) as R;
-    },
-    [updateErrors]
-  );
-
   /** フォーム全体のバリデーション */
   const validateAllFields = useCallback(
     function validateAllFields(formData: T_FormData): _FormErrors {
@@ -137,12 +108,117 @@ export function useForm<T_FormData extends Record<string, any>>({
   return {
     form,
     setForm,
-    createOnChangeField,
     wrapSubmit,
     validators: _validators,
+    control: {
+      form,
+      setForm,
+      updateErrors,
+    },
     utils: {
       validateTarget,
       updateErrors,
     },
   };
 }
+
+type CreateOnChangeFieldFn<
+  T_FormData,
+  T_UpdateTarget extends keyof T_FormData,
+  T_ConvertFn extends ((value: any) => T_FormData[T_UpdateTarget]) | undefined,
+  R = undefined extends T_ConvertFn
+    ? (value: T_FormData[T_UpdateTarget]) => void
+    : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
+> = (
+  updateTarget: T_UpdateTarget,
+  validateTargetArray: Array<keyof T_FormData>,
+  convertFn?: T_ConvertFn
+) => R;
+
+export const Controller = <
+  T_FormData extends Record<string, any>,
+  T_UpdateTarget extends keyof T_FormData,
+  T_ConvertFn extends ((value: any) => T_FormData[T_UpdateTarget]) | undefined
+>({
+  control,
+  updateTarget,
+  validateTargetArray,
+  convertFn,
+  render,
+}: {
+  control: {
+    form: Form<T_FormData>;
+    setForm: Dispatch<SetStateAction<Form<T_FormData>>>;
+    updateErrors: (
+      formData: T_FormData,
+      prevErrors: FormErrors<T_FormData>,
+      validateTargetArray: Array<keyof T_FormData>
+    ) => FormErrors<T_FormData>;
+  };
+  updateTarget: T_UpdateTarget;
+  validateTargetArray: Array<keyof T_FormData>;
+  convertFn?: T_ConvertFn;
+  render: ({
+    data,
+    error,
+    onChange,
+  }: {
+    data: T_FormData[T_UpdateTarget];
+    error: FormErrors<T_FormData>[T_UpdateTarget];
+    onChange: ReturnType<
+      CreateOnChangeFieldFn<T_FormData, T_UpdateTarget, T_ConvertFn>
+    >;
+  }) => ReactNode;
+}) => {
+  const { setForm, updateErrors } = control;
+  /**
+   * UIコンポーネントの onChange に渡す関数のファクトリー
+   * @param updateTarget 更新するフィールド名
+   * @param validateTargetArray バリデーションするフィールド名の配列
+   * @param convertFn (Optional) UIコンポーネントの onChange の引数を FormData 用に変換する
+   * @returns UIコンポーネントの onChange に渡す関数
+   */
+  const createOnChangeField = useCallback(
+    <
+      T_UpdateTarget extends keyof T_FormData,
+      T_ConvertFn extends
+        | ((value: any) => T_FormData[T_UpdateTarget])
+        | undefined,
+      R = undefined extends T_ConvertFn
+        ? (value: T_FormData[T_UpdateTarget]) => void
+        : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
+    >(
+      updateTarget: T_UpdateTarget,
+      validateTargetArray: Array<keyof T_FormData>,
+      convertFn?: T_ConvertFn
+    ): R => {
+      return ((value: any) => {
+        const newValue = convertFn == null ? value : convertFn(value);
+        setForm(({ data, error }) => {
+          const newData = { ...data, [updateTarget]: newValue };
+          return {
+            data: newData,
+            error: updateErrors(newData, error, validateTargetArray),
+            isDirty: true,
+          };
+        });
+      }) as R;
+    },
+    [setForm, updateErrors]
+  );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onChange = useCallback(
+    createOnChangeField(updateTarget, validateTargetArray, convertFn),
+    []
+  );
+  return (
+    <>
+      {render({
+        data: control.form.data[updateTarget],
+        error: control.form.error[updateTarget],
+        onChange,
+      })}
+    </>
+  );
+};

@@ -27,7 +27,7 @@ import {
   fetchTaskTemplate,
 } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
-import { Validators, useForm } from '@/common/form-lib';
+import { Controller, useForm } from '@/common/form-lib';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormData = {
@@ -48,8 +48,8 @@ export default function Form2() {
   const {
     form,
     setForm,
-    createOnChangeField,
     wrapSubmit,
+    control,
     utils: { updateErrors },
   } = useForm<FormData>({
     initialData: {
@@ -188,77 +188,54 @@ export default function Form2() {
   // elint は createOnChangeField の中身まで読まないので、useCallback の依存対象が分からない
   /* eslint-disable react-hooks/exhaustive-deps */
   // ## 個々のフォーム
-  /** タイトル */
-  const onChangeTitle = useCallback(
-    createOnChangeField(
-      'title',
-      ['title'],
-      (e: ChangeEvent<HTMLInputElement>) => {
-        return e.target.value;
-      }
-    ),
-    []
-  );
 
-  /** 説明 */
-  const onChangeDescription = useCallback(
-    createOnChangeField(
-      'description',
-      ['description'],
-      (e: ChangeEvent<HTMLTextAreaElement>) => {
-        return e.target.value;
-      }
-    ),
-    []
-  );
+  // /** 担当者 */
+  // const onChangeUserIdAssingnedTo = useCallback(
+  //   createOnChangeField('userIdAssingnedTo', [
+  //     'userIdAssingnedTo',
+  //     'userIdVerifiedBy',
+  //   ]),
+  //   []
+  // );
 
-  /** 担当者 */
-  const onChangeUserIdAssingnedTo = useCallback(
-    createOnChangeField('userIdAssingnedTo', [
-      'userIdAssingnedTo',
-      'userIdVerifiedBy',
-    ]),
-    []
-  );
+  // /** 承認者 */
+  // const onChangeUserIdVerifiedBy = useCallback(
+  //   createOnChangeField('userIdVerifiedBy', [
+  //     'userIdAssingnedTo',
+  //     'userIdVerifiedBy',
+  //   ]),
+  //   []
+  // );
 
-  /** 承認者 */
-  const onChangeUserIdVerifiedBy = useCallback(
-    createOnChangeField('userIdVerifiedBy', [
-      'userIdAssingnedTo',
-      'userIdVerifiedBy',
-    ]),
-    []
-  );
+  // /** 関係者 */
+  // const onChangeUserIdInvolvedArray = useCallback(
+  //   createOnChangeField('userIdInvolvedArray', ['userIdInvolvedArray']),
+  //   []
+  // );
 
-  /** 関係者 */
-  const onChangeUserIdInvolvedArray = useCallback(
-    createOnChangeField('userIdInvolvedArray', ['userIdInvolvedArray']),
-    []
-  );
+  // /** 開始日 */
+  // const onChangeStartDate = useCallback(
+  //   createOnChangeField('startDate', ['startDate', 'endDate']),
+  //   []
+  // );
 
-  /** 開始日 */
-  const onChangeStartDate = useCallback(
-    createOnChangeField('startDate', ['startDate', 'endDate']),
-    []
-  );
+  // /** 終了日 */
+  // const onChangeEndDate = useCallback(
+  //   createOnChangeField('endDate', ['startDate', 'endDate', 'endCondition']),
+  //   []
+  // );
 
-  /** 終了日 */
-  const onChangeEndDate = useCallback(
-    createOnChangeField('endDate', ['startDate', 'endDate', 'endCondition']),
-    []
-  );
-
-  /** 終了条件 */
-  const onChangeEndCondition = useCallback(
-    createOnChangeField(
-      'endCondition',
-      ['endCondition'],
-      (e: ChangeEvent<HTMLTextAreaElement>) => {
-        return e.currentTarget.value;
-      }
-    ),
-    []
-  );
+  // /** 終了条件 */
+  // const onChangeEndCondition = useCallback(
+  //   createOnChangeField(
+  //     'endCondition',
+  //     ['endCondition'],
+  //     (e: ChangeEvent<HTMLTextAreaElement>) => {
+  //       return e.currentTarget.value;
+  //     }
+  //   ),
+  //   []
+  // );
 
   const onPost = useCallback(
     wrapSubmit(
@@ -295,25 +272,49 @@ export default function Form2() {
             />
           </div>
           <div className="my-2">
-            <TextInput
-              label="タイトル"
-              withAsterisk
-              error={form.error.title.join(', ')}
-              value={form.data.title}
-              onChange={onChangeTitle}
-              maxLength={titleMaxLength + 1}
+            <Controller
+              control={control}
+              updateTarget="title"
+              validateTargetArray={['title']}
+              convertFn={(e: ChangeEvent<HTMLInputElement>) => {
+                return e.target.value;
+              }}
+              render={({ data, error, onChange }) => {
+                return (
+                  <TextInput
+                    label="タイトル"
+                    withAsterisk
+                    value={data}
+                    error={error.join(', ')}
+                    onChange={onChange}
+                    maxLength={titleMaxLength + 1}
+                  />
+                );
+              }}
             />
           </div>
           <div className="my-2">
-            <Textarea
-              label="説明"
-              value={form.data.description}
-              onChange={onChangeDescription}
-              maxLength={descriptionMaxLength + 1}
-              error={form.error.description.join(', ')}
+            <Controller
+              control={control}
+              updateTarget="description"
+              validateTargetArray={['description']}
+              convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                return e.target.value;
+              }}
+              render={({ data, error, onChange }) => {
+                return (
+                  <Textarea
+                    label="説明"
+                    value={data}
+                    onChange={onChange}
+                    maxLength={descriptionMaxLength + 1}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
-          <div className="my-2">
+          {/* <div className="my-2">
             <Select
               label="担当者"
               data={optionUsers}
@@ -380,7 +381,7 @@ export default function Form2() {
               error={form.error.endCondition.join(', ')}
               withAsterisk={form.data.endDate == null}
             />
-          </div>
+          </div> */}
           <div>
             <Button onClick={onPost}>保存</Button>
           </div>
