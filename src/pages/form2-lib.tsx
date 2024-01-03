@@ -222,7 +222,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="title"
+              target="title"
               validateTargetArray={['title']}
               convertFn={(e: ChangeEvent<HTMLInputElement>) => {
                 return e.target.value;
@@ -244,7 +244,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="description"
+              target="description"
               validateTargetArray={['description']}
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.target.value;
@@ -265,7 +265,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="userIdAssingnedTo"
+              target="userIdAssingnedTo"
               validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
               render={({ value, error, onChange }) => {
                 return (
@@ -287,7 +287,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="userIdVerifiedBy"
+              target="userIdVerifiedBy"
               validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
               render={({ value, error, onChange }) => {
                 return (
@@ -308,7 +308,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="userIdInvolvedArray"
+              target="userIdInvolvedArray"
               validateTargetArray={['userIdInvolvedArray']}
               render={({ value, error, onChange }) => {
                 return (
@@ -329,7 +329,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="startDate"
+              target="startDate"
               validateTargetArray={['startDate', 'endDate']}
               render={({ value, error, onChange }) => {
                 return (
@@ -349,7 +349,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="endDate"
+              target="endDate"
               validateTargetArray={['startDate', 'endDate', 'endCondition']}
               render={({ value, error, onChange }) => {
                 return (
@@ -369,7 +369,7 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              updateTarget="endCondition"
+              target="endCondition"
               validateTargetArray={['endCondition']}
               convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.currentTarget.value;

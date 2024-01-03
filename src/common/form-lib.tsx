@@ -133,7 +133,7 @@ export const Controller = <
     : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
 >({
   control,
-  updateTarget,
+  target,
   validateTargetArray,
   convertFn,
   render,
@@ -147,7 +147,7 @@ export const Controller = <
       validateTargetArray: Array<keyof T_FormValues>
     ) => FormErrors<T_FormValues>;
   };
-  updateTarget: T_UpdateTarget;
+  target: T_UpdateTarget;
   validateTargetArray: Array<keyof T_FormValues>;
   convertFn?: T_ConvertFn;
   render: ({
@@ -163,7 +163,7 @@ export const Controller = <
   const { setForm, updateErrors } = control;
   /**
    * UIコンポーネントの onChange に渡す関数のファクトリー
-   * @param updateTarget 更新するフィールド名
+   * @param target 更新するフィールド名
    * @param validateTargetArray バリデーションするフィールド名の配列
    * @param convertFn (Optional) UIコンポーネントの onChange の引数を formValues 用に変換する
    * @returns UIコンポーネントの onChange に渡す関数
@@ -175,14 +175,14 @@ export const Controller = <
         | ((value: any) => T_FormValues[T_UpdateTarget])
         | undefined
     >(
-      updateTarget: T_UpdateTarget,
+      target: T_UpdateTarget,
       validateTargetArray: Array<keyof T_FormValues>,
       convertFn?: T_ConvertFn
     ) => {
       return ((value: any) => {
         const newValue = convertFn == null ? value : convertFn(value);
         setForm(({ values, errors }) => {
-          const newValues = { ...values, [updateTarget]: newValue };
+          const newValues = { ...values, [target]: newValue };
           return {
             values: newValues,
             errors: updateErrors(newValues, errors, validateTargetArray),
@@ -196,14 +196,14 @@ export const Controller = <
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const onChange = useCallback(
-    createOnChangeField(updateTarget, validateTargetArray, convertFn),
+    createOnChangeField(target, validateTargetArray, convertFn),
     []
   );
   return (
     <>
       {render({
-        value: control.form.values[updateTarget],
-        error: control.form.errors[updateTarget],
+        value: control.form.values[target],
+        error: control.form.errors[target],
         onChange,
       })}
     </>
