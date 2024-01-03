@@ -22,14 +22,14 @@ export type Validators<T_FormValues extends Record<string, any>> = Partial<
 >;
 
 /**
- * @param initialValues initial values for T_FormValues
- * @param validator should be momoized or defined outside of React component to not rerender
+ * @param initialValues initial values for T_FormValues. All fields must be initialized regardless of the optionality.
+ * @param validators should be momoized or defined outside of React component to not rerender
  */
 export function useForm<T_FormValues extends Record<string, any>>({
   initialValues,
   validators,
 }: {
-  initialValues: T_FormValues;
+  initialValues: Required<T_FormValues>;
   validators: Validators<T_FormValues>;
 }) {
   type _Form = Form<T_FormValues>;
