@@ -128,7 +128,7 @@ export const Controller = <
   T_ConvertFn extends
     | ((value: any) => T_FormValues[T_UpdateTarget])
     | undefined,
-  R extends (value: any) => void = undefined extends T_ConvertFn
+  OnChangeFn extends (value: any) => void = undefined extends T_ConvertFn
     ? (value: T_FormValues[T_UpdateTarget]) => void
     : (value: Parameters<NonNullable<T_ConvertFn>>[0]) => void
 >({
@@ -157,7 +157,7 @@ export const Controller = <
   }: {
     value: T_FormValues[T_UpdateTarget];
     error: FormErrors<T_FormValues>[T_UpdateTarget];
-    onChange: R;
+    onChange: OnChangeFn;
   }) => ReactNode;
 }) => {
   const { setForm, updateErrors } = control;
@@ -189,7 +189,7 @@ export const Controller = <
             isDirty: true,
           };
         });
-      }) as R;
+      }) as OnChangeFn;
     },
     [setForm, updateErrors]
   );
