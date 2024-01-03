@@ -185,58 +185,7 @@ export default function Form2() {
     [queryTaskTemplates.data, setForm, updateErrors]
   );
 
-  // elint は createOnChangeField の中身まで読まないので、useCallback の依存対象が分からない
-  /* eslint-disable react-hooks/exhaustive-deps */
-  // ## 個々のフォーム
-
-  // /** 担当者 */
-  // const onChangeUserIdAssingnedTo = useCallback(
-  //   createOnChangeField('userIdAssingnedTo', [
-  //     'userIdAssingnedTo',
-  //     'userIdVerifiedBy',
-  //   ]),
-  //   []
-  // );
-
-  // /** 承認者 */
-  // const onChangeUserIdVerifiedBy = useCallback(
-  //   createOnChangeField('userIdVerifiedBy', [
-  //     'userIdAssingnedTo',
-  //     'userIdVerifiedBy',
-  //   ]),
-  //   []
-  // );
-
-  // /** 関係者 */
-  // const onChangeUserIdInvolvedArray = useCallback(
-  //   createOnChangeField('userIdInvolvedArray', ['userIdInvolvedArray']),
-  //   []
-  // );
-
-  // /** 開始日 */
-  // const onChangeStartDate = useCallback(
-  //   createOnChangeField('startDate', ['startDate', 'endDate']),
-  //   []
-  // );
-
-  // /** 終了日 */
-  // const onChangeEndDate = useCallback(
-  //   createOnChangeField('endDate', ['startDate', 'endDate', 'endCondition']),
-  //   []
-  // );
-
-  // /** 終了条件 */
-  // const onChangeEndCondition = useCallback(
-  //   createOnChangeField(
-  //     'endCondition',
-  //     ['endCondition'],
-  //     (e: ChangeEvent<HTMLTextAreaElement>) => {
-  //       return e.currentTarget.value;
-  //     }
-  //   ),
-  //   []
-  // );
-
+  // eslint-disable-next-line
   const onPost = useCallback(
     wrapSubmit(
       (formData) => {
@@ -249,7 +198,6 @@ export default function Form2() {
     ),
     []
   );
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="p-20">
@@ -314,74 +262,131 @@ export default function Form2() {
               }}
             />
           </div>
-          {/* <div className="my-2">
-            <Select
-              label="担当者"
-              data={optionUsers}
-              searchable
-              clearable
-              nothingFound="No options"
-              value={form.data.userIdAssingnedTo}
-              onChange={onChangeUserIdAssingnedTo}
-              error={form.error.userIdAssingnedTo.join(', ')}
+          <div className="my-2">
+            <Controller
+              control={control}
+              updateTarget="userIdAssingnedTo"
+              validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
+              render={({ data, error, onChange }) => {
+                return (
+                  <Select
+                    label="担当者"
+                    data={optionUsers}
+                    searchable
+                    clearable
+                    nothingFound="No options"
+                    value={data}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
 
           <div className="my-2">
-            <Select
-              label="承認者"
-              data={optionUsers}
-              searchable
-              clearable
-              nothingFound="No options"
-              value={form.data.userIdVerifiedBy}
-              onChange={onChangeUserIdVerifiedBy}
-              error={form.error.userIdVerifiedBy.join(', ')}
+            <Controller
+              control={control}
+              updateTarget="userIdVerifiedBy"
+              validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
+              render={({ data, error, onChange }) => {
+                return (
+                  <Select
+                    label="承認者"
+                    data={optionUsers}
+                    searchable
+                    clearable
+                    nothingFound="No options"
+                    value={data}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
           <div className="my-2">
-            <MultiSelect
-              label="関係者"
-              data={optionUsers}
-              searchable
-              clearable
-              nothingFound="No options"
-              value={form.data.userIdInvolvedArray}
-              onChange={onChangeUserIdInvolvedArray}
-              error={form.error.userIdInvolvedArray.join(', ')}
+            <Controller
+              control={control}
+              updateTarget="userIdInvolvedArray"
+              validateTargetArray={['userIdInvolvedArray']}
+              render={({ data, error, onChange }) => {
+                return (
+                  <MultiSelect
+                    label="関係者"
+                    data={optionUsers}
+                    searchable
+                    clearable
+                    nothingFound="No options"
+                    value={data}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
           <div className="my-2">
-            <DateInput
-              label="開始日"
-              valueFormat="YYYY/MM/DD"
-              clearable
-              value={form.data.startDate}
-              maxDate={form.data.endDate ?? undefined}
-              onChange={onChangeStartDate}
-              error={form.error.startDate.join(', ')}
+            <Controller
+              control={control}
+              updateTarget="startDate"
+              validateTargetArray={['startDate', 'endDate']}
+              render={({ data, error, onChange }) => {
+                return (
+                  <DateInput
+                    label="開始日"
+                    valueFormat="YYYY/MM/DD"
+                    clearable
+                    value={data}
+                    maxDate={form.data.endDate ?? undefined}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
           <div className="my-2">
-            <DateInput
-              label="終了日"
-              valueFormat="YYYY/MM/DD"
-              clearable
-              value={form.data.endDate}
-              minDate={form.data.startDate ?? undefined}
-              onChange={onChangeEndDate}
-              error={form.error.endDate.join(', ')}
+            <Controller
+              control={control}
+              updateTarget="endDate"
+              validateTargetArray={['startDate', 'endDate', 'endCondition']}
+              render={({ data, error, onChange }) => {
+                return (
+                  <DateInput
+                    label="終了日"
+                    valueFormat="YYYY/MM/DD"
+                    clearable
+                    value={data}
+                    minDate={form.data.startDate ?? undefined}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                  />
+                );
+              }}
             />
           </div>
           <div className="my-2">
-            <Textarea
-              label="終了条件"
-              value={form.data.endCondition}
-              onChange={onChangeEndCondition}
-              error={form.error.endCondition.join(', ')}
-              withAsterisk={form.data.endDate == null}
+            <Controller
+              control={control}
+              updateTarget="endCondition"
+              validateTargetArray={['endCondition']}
+              convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                return e.currentTarget.value;
+              }}
+              render={({ data, error, onChange }) => {
+                return (
+                  <Textarea
+                    label="終了条件"
+                    value={data}
+                    onChange={onChange}
+                    error={error.join(', ')}
+                    withAsterisk={form.data.endDate == null}
+                  />
+                );
+              }}
             />
-          </div> */}
+          </div>
           <div>
             <Button onClick={onPost}>保存</Button>
           </div>
