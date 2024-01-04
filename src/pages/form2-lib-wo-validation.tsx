@@ -27,7 +27,7 @@ import {
   fetchTaskTemplate,
 } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
-import { Controller, Validators, useForm } from '@/common/lib';
+import { Controller, useForm } from '@/common/lib-wo-validation';
 
 // 感想: ローカルのフォームの型は optional じゃなくて null のほうが明示的に初期化する必要があるから分かりやすい
 type FormValues = {
@@ -41,35 +41,45 @@ type FormValues = {
   endCondition: string;
 };
 
+type Validators<T_FormValues extends Record<string, any>> = Partial<
+  Record<keyof T_FormValues, (formValues: T_FormValues) => string[]>
+>;
+
+type FormErrors<T_FormValues extends Record<string, any>> = Record<
+  keyof T_FormValues,
+  string[]
+>;
+
 const titleMaxLength = 8;
 const descriptionMaxLength = 20;
 
 export default function Form2() {
-  const {
-    form,
-    setForm,
-    wrapSubmit,
-    control,
-    utils: { updateErrors },
-  } = useForm<FormValues>({
-    initialValues: {
-      title: '',
-      description: '',
-      userIdAssingnedTo: null,
-      userIdVerifiedBy: null,
-      userIdInvolvedArray: [],
-      startDate: null,
-      endDate: null,
-      endCondition: '',
-    },
-    validators,
-  });
+  const { values, setValues, fieldsChanged, setFieldsChanged, control } =
+    useForm<FormValues>({
+      initialValues: {
+        title: '',
+        description: '',
+        userIdAssingnedTo: null,
+        userIdVerifiedBy: null,
+        userIdInvolvedArray: [],
+        startDate: null,
+        endDate: null,
+        endCondition: '',
+      },
+    });
+
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // values が変わったら全部のフィールドをバリデーションする
+  const fieldsErrors = useMemo(() => {
+    return validateAllFields(values);
+  }, [values]);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
 
-  useConfirmBeforeUnload(form.isDirty);
+  useConfirmBeforeUnload(getIsSomeFieldChanged(fieldsChanged));
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
@@ -82,11 +92,8 @@ export default function Form2() {
 
   useEffect(() => {
     if (queryConstTaskDetail.data == null) return;
-    setForm((prev) => ({
-      ...prev,
-      values: responseToFormValues(queryConstTaskDetail.data),
-    }));
-  }, [queryConstTaskDetail.data, setForm]);
+    setValues(responseToFormValues(queryConstTaskDetail.data));
+  }, [queryConstTaskDetail.data, setValues]);
 
   const queryAllUsers = useQuery({
     queryKey: ['AllUsers'],
@@ -128,35 +135,39 @@ export default function Form2() {
       const selectedTemplate = queryTaskTemplates.data?.find(
         (template) => String(template.id) === value
       );
-      setForm(({ values, errors }) => {
-        const newValues = {
+      setValues((values) => {
+        return {
           ...values,
           title: selectedTemplate?.title ?? '',
           description: selectedTemplate?.description ?? '',
         };
+      });
+      setFieldsChanged((prev) => {
         return {
-          values: newValues,
-          errors: updateErrors(newValues, errors, ['title', 'description']),
-          isDirty: true,
+          ...prev,
+          title: true,
+          description: true,
         };
       });
     },
-    [queryTaskTemplates.data, setForm, updateErrors]
+    [queryTaskTemplates.data, setValues, setFieldsChanged]
   );
 
-  // eslint-disable-next-line
-  const onPost = useCallback(
-    wrapSubmit(
-      (formValues) => {
-        const payload = formValuesToPayload(formValues);
-        alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
-      },
-      (formErrors) => {
-        alert(`Errors:\n${JSON.stringify(formErrors, null, 2)}`);
-      }
-    ),
-    []
-  );
+  const onPost = useCallback(() => {
+    setIsSubmitted(true);
+    const isValid = getIsValid(fieldsErrors);
+    if (isValid) {
+      alert(`Errors:\n${JSON.stringify(fieldsErrors, null, 2)}`);
+      return;
+    }
+    const payload = formValuesToPayload(values);
+    alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
+  }, [values, fieldsErrors]);
+
+  /** isChanged か isSubmitted ならバリデーションメッセージを表示する */
+  const getErr = (isChanged: boolean, messages: string[]) => {
+    return isChanged || isSubmitted ? messages.join(', ') : '';
+  };
 
   return (
     <div className="p-20">
@@ -181,17 +192,17 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="title"
-              convertFn={(e: ChangeEvent<HTMLInputElement>) => {
+              name="title"
+              convert={(e: ChangeEvent<HTMLInputElement>) => {
                 return e.target.value;
               }}
-              render={({ value, error, onChange }) => {
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <TextInput
                     label="タイトル"
                     withAsterisk
                     value={value}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                     onChange={onChange}
                     maxLength={titleMaxLength + 1}
                   />
@@ -202,18 +213,18 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="description"
-              convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              name="description"
+              convert={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.target.value;
               }}
-              render={({ value, error, onChange }) => {
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <Textarea
                     label="説明"
                     value={value}
                     onChange={onChange}
                     maxLength={descriptionMaxLength + 1}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -222,9 +233,8 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="userIdAssingnedTo"
-              validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
-              render={({ value, error, onChange }) => {
+              name="userIdAssingnedTo"
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <Select
                     label="担当者"
@@ -234,7 +244,7 @@ export default function Form2() {
                     nothingFound="No options"
                     value={value}
                     onChange={onChange}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -244,9 +254,8 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="userIdVerifiedBy"
-              validateTargetArray={['userIdAssingnedTo', 'userIdVerifiedBy']}
-              render={({ value, error, onChange }) => {
+              name="userIdVerifiedBy"
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <Select
                     label="承認者"
@@ -256,7 +265,7 @@ export default function Form2() {
                     nothingFound="No options"
                     value={value}
                     onChange={onChange}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -265,8 +274,8 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="userIdInvolvedArray"
-              render={({ value, error, onChange }) => {
+              name="userIdInvolvedArray"
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <MultiSelect
                     label="関係者"
@@ -276,7 +285,7 @@ export default function Form2() {
                     nothingFound="No options"
                     value={value}
                     onChange={onChange}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -285,18 +294,17 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="startDate"
-              validateTargetArray={['startDate', 'endDate']}
-              render={({ value, error, onChange }) => {
+              name="startDate"
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <DateInput
                     label="開始日"
                     valueFormat="YYYY/MM/DD"
                     clearable
                     value={value}
-                    maxDate={form.values.endDate ?? undefined}
+                    maxDate={values.endDate ?? undefined}
                     onChange={onChange}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -305,18 +313,17 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="endDate"
-              validateTargetArray={['startDate', 'endDate', 'endCondition']}
-              render={({ value, error, onChange }) => {
+              name="endDate"
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <DateInput
                     label="終了日"
                     valueFormat="YYYY/MM/DD"
                     clearable
                     value={value}
-                    minDate={form.values.startDate ?? undefined}
+                    minDate={values.startDate ?? undefined}
                     onChange={onChange}
-                    error={error.join(', ')}
+                    error={getErr(isChanged, fieldsErrors[name])}
                   />
                 );
               }}
@@ -325,18 +332,18 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              target="endCondition"
-              convertFn={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              name="endCondition"
+              convert={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.currentTarget.value;
               }}
-              render={({ value, error, onChange }) => {
+              render={({ value, name, isChanged, onChange }) => {
                 return (
                   <Textarea
                     label="終了条件"
                     value={value}
                     onChange={onChange}
-                    error={error.join(', ')}
-                    withAsterisk={form.values.endDate == null}
+                    error={getErr(isChanged, fieldsErrors[name])}
+                    withAsterisk={values.endDate == null}
                   />
                 );
               }}
@@ -468,4 +475,34 @@ function validateDate(form: FormValues) {
     }
   }
   return newErrors;
+}
+
+/** validator がない場合は [] を返す */
+const validateTarget = function validateTarget(
+  target: keyof FormValues,
+  formValues: FormValues
+): string[] {
+  return validators[target]?.(formValues) ?? [];
+};
+
+/** フォーム全体のバリデーション */
+const validateAllFields = function validateAllFields(
+  formValues: FormValues
+): FormErrors<FormValues> {
+  const newErrors = Object.fromEntries(
+    Object.keys(formValues).map((key) => [
+      key,
+      validateTarget(key as keyof FormValues, formValues),
+    ])
+  );
+
+  return newErrors as FormErrors<FormValues>;
+};
+
+function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
+  return Object.values(fieldsChanged).some((v) => v);
+}
+
+function getIsValid(fieldsErrors: FormErrors<FormValues>) {
+  return Object.values(fieldsErrors).some((v) => v.length > 0);
 }
