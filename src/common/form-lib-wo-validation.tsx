@@ -49,10 +49,11 @@ export function useForm<T_FormValues extends Record<string, any>>({
 }
 
 /**
- * @param control The control returned value from useForm
- * @param target 更新するフィールド名
- * @param convertFn (Optional) UIコンポーネントの onChange の引数を formValues 用に変換する関数.
- * 副作用がなくて、引数のみに依存している必要がある。
+ * @param control `control` returned form useForm
+ * @param target name of the field to update
+ * @param convertFn (Optional) Function to convert UI component's onChange arguments for value of form. \
+ * Must have no side-effects and depend only on arguments. The content of this function must not change. \
+ * i.e. `(e: ChangeEvent<HTMLInputElement>) => e.target.value`
  * @returns
  */
 export const Controller = <
@@ -96,14 +97,6 @@ export const Controller = <
 }) => {
   useConvertMustNotChange(name, convert);
 
-  /**
-   * UIコンポーネントの onChange に渡す関数のファクトリー
-   * @param name 更新するフィールド名
-   * @param convert (Optional) UIコンポーネントの onChange の引数を values 用に変換する関数.
-   * 副作用がなくて、引数のみに依存している必要がある。
-   * i.e. (e: ChangeEvent<HTMLInputElement>) => e.target.value
-   * @returns UIコンポーネントの onChange に渡す関数
-   */
   const createOnChangeField = <
     T_Name extends keyof T_FormValues,
     T_ConvertFn extends ((value: any) => T_FormValues[T_Name]) | undefined
