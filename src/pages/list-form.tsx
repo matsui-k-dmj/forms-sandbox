@@ -193,42 +193,39 @@ const ListItem = memo(function ListItem({
   onDown: (sortValue: number) => void;
   onRemove: (sortValue: number) => void;
 }) {
-  const onChangeTitle = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      onChange({
-        title: e.target.value,
-        sortValue: item.sortValue,
-      });
-    },
-    [item.sortValue, onChange]
-  );
-
-  const onChangeUserId = useCallback(
-    (value: string | null) => {
-      onChange({
-        userId: value,
-        sortValue: item.sortValue,
-      });
-    },
-    [item.sortValue, onChange]
-  );
-
-  const onClickUp = useCallback(() => {
-    onUp(item.sortValue);
-  }, [item.sortValue, onUp]);
-
-  const onClickDown = useCallback(() => {
-    onDown(item.sortValue);
-  }, [item.sortValue, onDown]);
-
-  const onClickRemove = useCallback(() => {
-    onRemove(item.sortValue);
-  }, [item.sortValue, onRemove]);
+  console.log(`Render ListItem: ${item.title}`);
+  // 他のアイテムをリレンダーしなければパフォーマンス的には十分なので、同じアイテム内の別のコンポーネントをリレンダーしないように
+  // 頑張る必要はそんなになさそう
+  const handlers = useMemo(() => {
+    return {
+      title: (e: ChangeEvent<HTMLInputElement>) => {
+        onChange({
+          title: e.target.value,
+          sortValue: item.sortValue,
+        });
+      },
+      userId: (value: string | null) => {
+        onChange({
+          userId: value,
+          sortValue: item.sortValue,
+        });
+      },
+      up: () => {
+        onUp(item.sortValue);
+      },
+      down: () => {
+        onDown(item.sortValue);
+      },
+      remove: () => {
+        onRemove(item.sortValue);
+      },
+    };
+  }, [item.sortValue, onChange, onUp, onDown, onRemove]);
 
   return (
     <div className="flex my-2">
       <div className="mx-2">
-        <TextInput value={item.title} onChange={onChangeTitle} />
+        <TextInput value={item.title} onChange={handlers.title} />
       </div>
       <div className="mx-2">
         <Select
@@ -237,17 +234,17 @@ const ListItem = memo(function ListItem({
           clearable
           nothingFound="No options"
           value={item.userId}
-          onChange={onChangeUserId}
+          onChange={handlers.userId}
         />
       </div>
       <div className="mx-1">
-        <Button onClick={onClickUp}>Up</Button>
+        <Button onClick={handlers.up}>Up</Button>
       </div>
       <div className="mx-1">
-        <Button onClick={onClickDown}>Down</Button>
+        <Button onClick={handlers.down}>Down</Button>
       </div>
       <div className="mx-1">
-        <Button onClick={onClickRemove}>Remove</Button>
+        <Button onClick={handlers.remove}>Remove</Button>
       </div>
     </div>
   );
