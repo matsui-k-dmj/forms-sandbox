@@ -170,29 +170,27 @@ export default function Form1() {
     [queryTaskTemplates.data]
   );
 
-  /** タイトル */
-  const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.currentTarget.value;
-    setFormData((prev) => {
-      return { ...prev, title: value };
-    });
+  const handlers = useMemo(() => {
+    return {
+      title: (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.currentTarget.value;
+        setFormData((prev) => {
+          return { ...prev, title: value };
+        });
 
-    setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
-    setIsDirty(true);
+        setErrors((prev) => ({ ...prev, title: validateTitle(value) }));
+        setIsDirty(true);
+      },
+      description: (e: ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.currentTarget.value;
+        setFormData((prev) => ({
+          ...prev,
+          description: value,
+        }));
+        setIsDirty(true);
+      },
+    } satisfies Record<'title' | 'description', Function>;
   }, []);
-
-  /** 説明 */
-  const onChangeDescription = useCallback(
-    (e: ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.currentTarget.value;
-      setFormData((prev) => ({
-        ...prev,
-        description: value,
-      }));
-      setIsDirty(true);
-    },
-    []
-  );
 
   /** 担当者 */
   const onChangeUserIdAssingnedTo = useCallback(
@@ -330,7 +328,7 @@ export default function Form1() {
               withAsterisk
               error={errors.title.join(', ')}
               value={formData.title}
-              onChange={onChangeTitle}
+              onChange={handlers.title}
               maxLength={titleMaxLength + 1}
             />
           </div>
@@ -338,7 +336,7 @@ export default function Form1() {
             <Textarea
               label="説明"
               value={formData.description}
-              onChange={onChangeDescription}
+              onChange={handlers.description}
             />
           </div>
           <div className="my-2">
