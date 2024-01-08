@@ -1,8 +1,5 @@
 /**
- * form1 の values, errors, isDirty をまとめて一つのstateにする
- * useCallbackの依存関係が減ってる。
- * 更新時にerror とか isDirtyについて考える必要があるから、忘れにくそう。
- * onPost でも setForm の中でいろいろやれれば, formへの依存がなくなってrerenderしなくて良くなる
+ * lib-wo-validation を使ってみる
  */
 
 import {
@@ -193,7 +190,7 @@ export default function Form2() {
             <Controller
               control={control}
               name="title"
-              convert={(e: ChangeEvent<HTMLInputElement>) => {
+              transform={(e: ChangeEvent<HTMLInputElement>) => {
                 return e.target.value;
               }}
               render={({ value, name, isChanged, onChange }) => {
@@ -214,7 +211,7 @@ export default function Form2() {
             <Controller
               control={control}
               name="description"
-              convert={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.target.value;
               }}
               render={({ value, name, isChanged, onChange }) => {
@@ -333,7 +330,7 @@ export default function Form2() {
             <Controller
               control={control}
               name="endCondition"
-              convert={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
                 return e.currentTarget.value;
               }}
               render={({ value, name, isChanged, onChange }) => {
