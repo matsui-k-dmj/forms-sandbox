@@ -14,7 +14,7 @@ export function useForm<T_FormValues extends Record<string, any>>({
 }: {
   initialValues: Required<T_FormValues>;
 }) {
-  const [values, setValues] = useState<T_FormValues>(initialValues);
+  const [values, setValues] = useState<Required<T_FormValues>>(initialValues);
   const [fieldsChanged, setFieldsChanged] = useState(
     Object.fromEntries(
       Object.keys(initialValues).map((key) => [key, false])
