@@ -57,7 +57,7 @@ export const Controller = <
   T_FormValues extends Record<string, any>,
   T_Name extends Extract<keyof T_FormValues, string>,
   T_Transform extends ((value: any) => T_FormValues[T_Name]) | undefined,
-  T_OnChangeFn extends (value: any) => void = undefined extends T_Transform
+  T_OnChange extends (value: any) => void = undefined extends T_Transform
     ? (value: T_FormValues[T_Name]) => void
     : (value: Parameters<NonNullable<T_Transform>>[0]) => void
 >({
@@ -81,7 +81,7 @@ export const Controller = <
     value: T_FormValues[T_Name];
     isChanged: boolean;
     isBlurred: boolean;
-    onChange: T_OnChangeFn;
+    onChange: T_OnChange;
     onBlur: () => void;
   }) => ReactNode;
 }) => {
@@ -100,7 +100,7 @@ export const Controller = <
       setFieldsChanged((prev) => {
         return { ...prev, [name]: true };
       });
-    }) as T_OnChangeFn;
+    }) as T_OnChange;
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
