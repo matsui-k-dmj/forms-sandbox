@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 
 /** isDirtyなどの場合に閉じる前に警告 */
-export function useConfirmBeforeUnload(toConfirm: boolean) {
+export function useConfirmBeforeUnload(shouldConfirm: boolean) {
   useEffect(() => {
-    if (!toConfirm) return;
+    if (!shouldConfirm) return;
 
     const f = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -13,5 +13,5 @@ export function useConfirmBeforeUnload(toConfirm: boolean) {
     return () => {
       removeEventListener('beforeunload', f);
     };
-  }, [toConfirm]);
+  }, [shouldConfirm]);
 }
