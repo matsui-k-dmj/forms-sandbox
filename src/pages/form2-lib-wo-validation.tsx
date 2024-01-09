@@ -152,8 +152,8 @@ export default function Form2() {
 
   const onPost = useCallback(() => {
     setIsSubmitted(true);
-    const isValid = getIsValid(fieldsErrors);
-    if (isValid) {
+    const isInvalid = getIsInvalid(fieldsErrors);
+    if (isInvalid) {
       alert(`Errors:\n${JSON.stringify(fieldsErrors, null, 2)}`);
       return;
     }
@@ -492,6 +492,6 @@ function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
   return Object.values(fieldsChanged).some((v) => v);
 }
 
-function getIsValid(fieldsErrors: Record<string, string[]>) {
+function getIsInvalid(fieldsErrors: Record<string, string[]>) {
   return Object.values(fieldsErrors).some((v) => v.length > 0);
 }
