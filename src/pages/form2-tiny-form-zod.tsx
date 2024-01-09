@@ -30,22 +30,54 @@ import * as z from 'zod';
 const titleMaxLength = 8;
 const descriptionMaxLength = 20;
 
-const formSchema = z.object({
-  title: z.string().max(titleMaxLength).min(1, 'Required'),
-  description: z.string().max(descriptionMaxLength),
-  userIdAssingnedTo: z.string().nullable(),
-  userIdVerifiedBy: z.string().nullable(),
-  userIdInvolvedArray: z.array(z.string()).min(1, 'Required'),
-  startDate: z.date().nullable(),
-  endDate: z.date().nullable(),
-  endCondition: z.string(),
-});
+const formSchema = z
+  .object({
+    title: z.string().max(titleMaxLength).min(1, 'Required'),
+    description: z.string().max(descriptionMaxLength),
+    userIdAssingnedTo: z.string().nullable(),
+    userIdVerifiedBy: z.string().nullable(),
+    userIdInvolvedArray: z.array(z.string()).min(1, 'Required'),
+    startDate: z.date().nullable(),
+    endDate: z.date().nullable(),
+    endCondition: z.string(),
+  })
+  .refine(refineUsers, {
+    message: '担当者と承認者が同じです',
+    path: ['userIdAssingnedTo'],
+  })
+  .refine(refineUsers, {
+    message: '担当者と承認者が同じです',
+    path: ['userIdVerifiedBy'],
+  })
+  .refine(
+    ({ endDate, endCondition }) => {
+      if (endDate == null && endCondition === '') {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: '終了日が未定の場合は終了条件が必要です。',
+      path: ['endCondition'],
+    }
+  );
+
+function refineUsers({
+  userIdAssingnedTo,
+  userIdVerifiedBy,
+}: {
+  userIdAssingnedTo: string | null;
+  userIdVerifiedBy: string | null;
+}) {
+  if (userIdAssingnedTo != null && userIdVerifiedBy != null) {
+    if (userIdAssingnedTo === userIdVerifiedBy) {
+      return false;
+    }
+  }
+  return true;
+}
 
 type FormValues = z.infer<typeof formSchema>;
-
-type Validators<T_FormValues extends Record<string, any>> = Partial<
-  Record<keyof T_FormValues, (formValues: T_FormValues) => string[]>
->;
 
 export default function Form2() {
   const { values, setValues, fieldsChanged, setFieldsChanged, control } =
@@ -71,6 +103,8 @@ export default function Form2() {
       return result.error.format();
     }
   }, [values]);
+
+  console.log(fieldsErrors);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
@@ -406,74 +440,6 @@ function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
         : dayjs(formValues.endDate).format('YYYY-MM-DD'),
     end_condition: formValues.endCondition || null,
   };
-}
-
-// # バリデーション
-
-const validators: Validators<FormValues> = {
-  title(form) {
-    const newErrors: string[] = [];
-    const value = form.title;
-    if (value === '') {
-      newErrors.push('必須');
-    }
-    if (value.length >= titleMaxLength + 1) {
-      newErrors.push(`${titleMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  description(form) {
-    const value = form.description;
-    const newErrors: string[] = [];
-    if (value.length >= descriptionMaxLength + 1) {
-      newErrors.push(`${descriptionMaxLength}文字以内`);
-    }
-    return newErrors;
-  },
-  userIdAssingnedTo: validateUsers,
-  userIdVerifiedBy: validateUsers,
-  userIdInvolvedArray(form) {
-    const value = form.userIdInvolvedArray;
-    const newErrors: string[] = [];
-    if (value.length === 0) {
-      newErrors.push('必須');
-    }
-    return newErrors;
-  },
-  startDate: validateDate,
-  endDate: validateDate,
-  endCondition(form) {
-    const { endDate, endCondition } = form;
-    const newErrors: string[] = [];
-    if (endDate == null && endCondition === '') {
-      newErrors.push('終了日が未定の場合は終了条件が必要です。');
-    }
-    return newErrors;
-  },
-};
-
-/** 担当者, 承認者 */
-function validateUsers(form: FormValues) {
-  const { userIdAssingnedTo, userIdVerifiedBy } = form;
-  const newErrors: string[] = [];
-  if (userIdAssingnedTo != null && userIdVerifiedBy != null) {
-    if (userIdAssingnedTo === userIdVerifiedBy) {
-      newErrors.push('担当者と承認者が同じです');
-    }
-  }
-  return newErrors;
-}
-
-/** 開始日, 終了日 */
-function validateDate(form: FormValues) {
-  const { startDate, endDate } = form;
-  const newErrors: string[] = [];
-  if (startDate != null && endDate != null) {
-    if (endDate < startDate) {
-      newErrors.push('開始日が終了日よりも後になっています');
-    }
-  }
-  return newErrors;
 }
 
 function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
