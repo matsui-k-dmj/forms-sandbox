@@ -474,14 +474,6 @@ function validateDate(form: FormValues) {
   return newErrors;
 }
 
-/** validator がない場合は [] を返す */
-const validateTarget = function validateTarget(
-  target: keyof FormValues,
-  formValues: FormValues
-): string[] {
-  return validators[target]?.(formValues) ?? [];
-};
-
 /** フォーム全体のバリデーション */
 const validateAllFields = function validateAllFields(
   formValues: FormValues
@@ -489,7 +481,7 @@ const validateAllFields = function validateAllFields(
   const newErrors = Object.fromEntries(
     Object.keys(formValues).map((key) => [
       key,
-      validateTarget(key as keyof FormValues, formValues),
+      validators[key as keyof FormValues]?.(formValues) ?? [],
     ])
   );
 
@@ -500,6 +492,6 @@ function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
   return Object.values(fieldsChanged).some((v) => v);
 }
 
-function getIsValid(fieldsErrors: FormErrors<FormValues>) {
+function getIsValid(fieldsErrors: Record<string, string[]>) {
   return Object.values(fieldsErrors).some((v) => v.length > 0);
 }
