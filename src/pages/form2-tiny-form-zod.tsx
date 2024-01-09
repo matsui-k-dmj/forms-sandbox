@@ -104,8 +104,6 @@ export default function Form2() {
     }
   }, [values]);
 
-  console.log(fieldsErrors);
-
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
