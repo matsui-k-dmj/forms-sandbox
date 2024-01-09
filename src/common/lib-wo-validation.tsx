@@ -7,7 +7,7 @@ type Control<T_FormValues extends Record<string, any>> = ReturnType<
 >['control'];
 
 /**
- * @param initialValues Initial values for T_FormValues. All fields must be initialized regardless of the optionality.
+ * - initialValues Initial values for T_FormValues. All fields must be initialized regardless of the optionality.
  */
 export function useForm<T_FormValues extends Record<string, any>>({
   initialValues,
@@ -46,12 +46,12 @@ export function useForm<T_FormValues extends Record<string, any>>({
 }
 
 /**
- * @param control `control` returned form useForm
- * @param target name of the field to update
- * @param transform (Optional) Function to transform UI component's onChange arguments for value of form. \
- * Must have no side-effects and depend only on arguments. The content of this function must not change. \
+ * - control: `control` returned form useForm
+ * - name: name of the field to update. \
+ * Must not change because Controller keeps using this of the first render.
+ * - transform: (Optional) Function to transform UI component's onChange arguments for value of form. \
+ * Must not change and must have no side-effects and depend only on its arguments because Controller keeps using this of the first render. \
  * i.e. `(e: ChangeEvent<HTMLInputElement>) => e.target.value`
- * @returns
  */
 export const Controller = <
   T_FormValues extends Record<string, any>,
@@ -104,17 +104,14 @@ export const Controller = <
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const onChange = useCallback(createOnChangeField(name, transform), [
-    name,
-    setValues,
-    setFieldsChanged,
-  ]);
+  const onChange = useCallback(createOnChangeField(name, transform), []);
 
   const onBlur = useCallback(() => {
     setFieldBlurred((prev) => {
       return { ...prev, [name]: true };
     });
-  }, [name, setFieldBlurred]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
