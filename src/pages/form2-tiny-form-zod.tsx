@@ -30,6 +30,7 @@ import * as z from 'zod';
 const titleMaxLength = 8;
 const descriptionMaxLength = 20;
 
+// zod でバリデーション
 const formSchema = z
   .object({
     title: z.string().max(titleMaxLength).min(1, 'Required'),
@@ -41,6 +42,7 @@ const formSchema = z
     endDate: z.date().nullable(),
     endCondition: z.string(),
   })
+  // 複数フィールドに依存するバリデーションは refine で書く
   .refine(refineUsers, {
     message: '担当者と承認者が同じです',
     path: ['userIdAssingnedTo'],
@@ -82,6 +84,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function Form2() {
   const { values, setValues, fieldsChanged, setFieldsChanged, control } =
     useForm<FormValues>({
+      // 初期値を全部与えると型が単純になる
       initialValues: {
         title: '',
         description: '',
@@ -96,7 +99,7 @@ export default function Form2() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // values が変わったら全部のフィールドをバリデーションする
+  // values が変わったら全部のフィールドをバリデーションする。
   const fieldsErrors = useMemo(() => {
     const result = formSchema.safeParse(values);
     if (!result.success) {
@@ -108,7 +111,7 @@ export default function Form2() {
     null
   );
 
-  useConfirmBeforeUnload(getIsSomeFieldChanged(fieldsChanged));
+  useConfirmBeforeUnload(hasSomeFieldsChanged(fieldsChanged));
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
@@ -156,7 +159,6 @@ export default function Form2() {
     [queryTaskTemplates.data]
   );
 
-  // # イベントハンドラ
   /** テンプレート選択 */
   const onChangeTemplate = useCallback(
     (value: string | null) => {
@@ -171,6 +173,7 @@ export default function Form2() {
           description: selectedTemplate?.description ?? '',
         };
       });
+      // setValues するだけではバリデーションメッセージが出ないので fieldsChanged も更新
       setFieldsChanged((prev) => {
         return {
           ...prev,
@@ -184,11 +187,15 @@ export default function Form2() {
 
   const onPost = useCallback(() => {
     setIsSubmitted(true);
+
     const isValid = fieldsErrors == null;
+    // フォームがinvalidならAPIはコールしない。
     if (!isValid) {
       alert(`Errors:\n${JSON.stringify(fieldsErrors, null, 2)}`);
       return;
     }
+
+    // フォームがvalidならペイロードに変換してAPIコール
     const payload = formValuesToPayload(values);
     alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
   }, [values, fieldsErrors]);
@@ -440,6 +447,7 @@ function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
   };
 }
 
-function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
+/** changed なフィールドがあるか */
+function hasSomeFieldsChanged(fieldsChanged: Record<string, boolean>) {
   return Object.values(fieldsChanged).some((v) => v);
 }
