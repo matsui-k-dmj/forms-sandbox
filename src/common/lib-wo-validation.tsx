@@ -51,7 +51,7 @@ export function useForm<T_FormValues extends Record<string, any>>({
  * Must not change because Controller keeps using this of the first render.
  * - transform: (Optional) Function to transform UI component's onChange arguments for value of form. \
  * Must not change and must have no side-effects and depend only on its arguments because Controller keeps using this of the first render. \
- * i.e. `(e: ChangeEvent<HTMLInputElement>) => e.target.value`
+ * e.g. `(e: ChangeEvent<HTMLInputElement>) => e.target.value`
  */
 export const Controller = <
   T_FormValues extends Record<string, any>,
