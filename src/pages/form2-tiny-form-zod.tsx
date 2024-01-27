@@ -28,19 +28,16 @@ import { Controller, useForm } from '@/common/lib-wo-validation';
 import * as z from 'zod';
 
 const titleMaxLength = 8;
-const descriptionMaxLength = 20;
 
 // zod でバリデーション
 const formSchema = z
   .object({
     title: z.string().max(titleMaxLength).min(1, 'Required'),
-    description: z.string().max(descriptionMaxLength),
     userIdAssingnedTo: z.string().nullable(),
     userIdVerifiedBy: z.string().nullable(),
     userIdInvolvedArray: z.array(z.string()).min(1, 'Required'),
     startDate: z.date().nullable(),
     endDate: z.date().nullable(),
-    endCondition: z.string(),
   })
   // 複数フィールドに依存するバリデーションは refine で書く
   .refine(refineUsers, {
@@ -50,19 +47,7 @@ const formSchema = z
   .refine(refineUsers, {
     message: '担当者と承認者が同じです',
     path: ['userIdVerifiedBy'],
-  })
-  .refine(
-    ({ endDate, endCondition }) => {
-      if (endDate == null && endCondition === '') {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: '終了日が未定の場合は終了条件が必要です。',
-      path: ['endCondition'],
-    }
-  );
+  });
 
 function refineUsers({
   userIdAssingnedTo,
@@ -87,13 +72,11 @@ export default function Form2() {
       // 初期値を全部与えると型が単純になる
       initialValues: {
         title: '',
-        description: '',
         userIdAssingnedTo: null,
         userIdVerifiedBy: null,
         userIdInvolvedArray: [],
         startDate: null,
         endDate: null,
-        endCondition: '',
       },
     });
 
@@ -251,26 +234,6 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              name="description"
-              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                return e.target.value;
-              }}
-              render={({ value, name, isChanged, onChange }) => {
-                return (
-                  <Textarea
-                    label="説明"
-                    value={value}
-                    onChange={onChange}
-                    maxLength={descriptionMaxLength + 1}
-                    error={getErr(isChanged, name)}
-                  />
-                );
-              }}
-            />
-          </div>
-          <div className="my-2">
-            <Controller
-              control={control}
               name="userIdAssingnedTo"
               render={({ value, name, isChanged, onChange }) => {
                 return (
@@ -288,7 +251,6 @@ export default function Form2() {
               }}
             />
           </div>
-
           <div className="my-2">
             <Controller
               control={control}
@@ -367,26 +329,6 @@ export default function Form2() {
               }}
             />
           </div>
-          <div className="my-2">
-            <Controller
-              control={control}
-              name="endCondition"
-              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                return e.currentTarget.value;
-              }}
-              render={({ value, name, isChanged, onChange }) => {
-                return (
-                  <Textarea
-                    label="終了条件"
-                    value={value}
-                    onChange={onChange}
-                    error={getErr(isChanged, name)}
-                    withAsterisk={values.endDate == null}
-                  />
-                );
-              }}
-            />
-          </div>
           <div>
             <Button onClick={onPost}>保存</Button>
           </div>
@@ -401,7 +343,6 @@ export default function Form2() {
 function responseToFormValues(response: TaskDetail): FormValues {
   return {
     title: response.title,
-    description: response.description ?? '',
     userIdAssingnedTo:
       response.user_assingned_to?.id == null
         ? null
@@ -419,14 +360,12 @@ function responseToFormValues(response: TaskDetail): FormValues {
       response.end_date == null
         ? null
         : dayjs(response.end_date, 'YYYY-MM-DD').toDate(),
-    endCondition: response.end_condition ?? '',
   };
 }
 
 function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
   return {
     title: formValues.title,
-    description: formValues.description || null,
     user_id_assingned_to:
       formValues.userIdAssingnedTo == null
         ? null
@@ -443,7 +382,6 @@ function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
       formValues.endDate == null
         ? null
         : dayjs(formValues.endDate).format('YYYY-MM-DD'),
-    end_condition: formValues.endCondition || null,
   };
 }
 
