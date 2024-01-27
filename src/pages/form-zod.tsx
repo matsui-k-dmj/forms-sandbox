@@ -9,7 +9,6 @@ import {
 import {
   Select,
   TextInput,
-  Textarea,
   DateInput,
   Button,
   MultiSelect,
@@ -17,12 +16,7 @@ import {
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
-import { filterFalsy } from '@/common/filter-falsy';
-import {
-  fetchAllUsers,
-  fetchConstTaskDetail,
-  fetchTaskTemplate,
-} from '@/common/stubs';
+import { allUsers, fetchConstTaskDetail, taskTemplates } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
 import { Controller, useForm } from '@/common/lib-wo-validation';
 import * as z from 'zod';
@@ -110,43 +104,15 @@ export default function Form2() {
     setValues(responseToFormValues(queryConstTaskDetail.data));
   }, [queryConstTaskDetail.data, setValues]);
 
-  const queryAllUsers = useQuery({
-    queryKey: ['AllUsers'],
-    queryFn: () => {
-      return fetchAllUsers;
-    },
-  });
+  const optionUsers = usersToSelectData(allUsers);
 
-  // allUsers がまだ取れてないときはTaskDetailの中身で初期化しとく
-  const optionUsers = useMemo(
-    () =>
-      usersToSelectData(
-        queryAllUsers.data ??
-          [
-            queryConstTaskDetail.data?.user_assingned_to,
-            queryConstTaskDetail.data?.user_verified_by,
-          ].filter(filterFalsy)
-      ),
-    [queryAllUsers.data, queryConstTaskDetail.data]
-  );
-
-  const queryTaskTemplates = useQuery({
-    queryKey: ['TaskTemplates'],
-    queryFn: () => {
-      return fetchTaskTemplate;
-    },
-  });
-
-  const optionTaskTemplates = useMemo(
-    () => taskTemplatesToSelectData(queryTaskTemplates.data ?? []),
-    [queryTaskTemplates.data]
-  );
+  const optionTaskTemplates = taskTemplatesToSelectData(taskTemplates);
 
   /** テンプレート選択 */
   const onChangeTemplate = useCallback(
     (value: string | null) => {
       setSelectedTemplateId(value);
-      const selectedTemplate = queryTaskTemplates.data?.find(
+      const selectedTemplate = taskTemplates.find(
         (template) => String(template.id) === value
       );
       setValues((values) => {
@@ -165,7 +131,7 @@ export default function Form2() {
         };
       });
     },
-    [queryTaskTemplates.data, setValues, setFieldsChanged]
+    [setValues, setFieldsChanged]
   );
 
   const onPost = useCallback(() => {
@@ -193,9 +159,7 @@ export default function Form2() {
   return (
     <div className="p-20">
       <div className="my-2">タスク編集</div>
-      {queryConstTaskDetail.isLoading ||
-      queryAllUsers.isLoading ||
-      queryTaskTemplates.isLoading ? (
+      {queryConstTaskDetail.isLoading ? (
         <div>Loading...</div>
       ) : (
         <>
