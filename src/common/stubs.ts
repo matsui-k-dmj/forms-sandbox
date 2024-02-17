@@ -1,4 +1,4 @@
-const allUsers: User[] = [
+export const allUsers: User[] = [
   { id: 1, name: '松山' },
   { id: 2, name: '横田' },
   { id: 3, name: '長谷川' },
@@ -6,7 +6,7 @@ const allUsers: User[] = [
   { id: 5, name: '五十嵐' },
 ];
 
-const taskTemplates: TaskTemplate[] = [
+export const taskTemplates: TaskTemplate[] = [
   { id: 1, title: 'デプロイ', description: '本番環境にデプロイする' },
   { id: 2, title: '手動テスト', description: '手動テストする' },
 ];

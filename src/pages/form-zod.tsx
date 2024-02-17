@@ -9,7 +9,6 @@ import {
 import {
   Select,
   TextInput,
-  Textarea,
   DateInput,
   Button,
   MultiSelect,
@@ -17,30 +16,24 @@ import {
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
-import { filterFalsy } from '@/common/filter-falsy';
-import {
-  fetchAllUsers,
-  fetchConstTaskDetail,
-  fetchTaskTemplate,
-} from '@/common/stubs';
+import { allUsers, fetchConstTaskDetail, taskTemplates } from '@/common/stubs';
 import { useConfirmBeforeUnload } from '@/common/confirm-before-unload';
 import { Controller, useForm } from '@/common/lib-wo-validation';
 import * as z from 'zod';
 
 const titleMaxLength = 8;
-const descriptionMaxLength = 20;
 
+// zod でバリデーション
 const formSchema = z
   .object({
     title: z.string().max(titleMaxLength).min(1, 'Required'),
-    description: z.string().max(descriptionMaxLength),
     userIdAssingnedTo: z.string().nullable(),
     userIdVerifiedBy: z.string().nullable(),
     userIdInvolvedArray: z.array(z.string()).min(1, 'Required'),
     startDate: z.date().nullable(),
     endDate: z.date().nullable(),
-    endCondition: z.string(),
   })
+  // 複数フィールドに依存するバリデーションは refine で書く
   .refine(refineUsers, {
     message: '担当者と承認者が同じです',
     path: ['userIdAssingnedTo'],
@@ -48,19 +41,7 @@ const formSchema = z
   .refine(refineUsers, {
     message: '担当者と承認者が同じです',
     path: ['userIdVerifiedBy'],
-  })
-  .refine(
-    ({ endDate, endCondition }) => {
-      if (endDate == null && endCondition === '') {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: '終了日が未定の場合は終了条件が必要です。',
-      path: ['endCondition'],
-    }
-  );
+  });
 
 function refineUsers({
   userIdAssingnedTo,
@@ -82,21 +63,20 @@ type FormValues = z.infer<typeof formSchema>;
 export default function Form2() {
   const { values, setValues, fieldsChanged, setFieldsChanged, control } =
     useForm<FormValues>({
+      // 初期値を全部与えると型が単純になる
       initialValues: {
         title: '',
-        description: '',
         userIdAssingnedTo: null,
         userIdVerifiedBy: null,
         userIdInvolvedArray: [],
         startDate: null,
         endDate: null,
-        endCondition: '',
       },
     });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // values が変わったら全部のフィールドをバリデーションする
+  // values が変わったら全部のフィールドをバリデーションする。
   const fieldsErrors = useMemo(() => {
     const result = formSchema.safeParse(values);
     if (!result.success) {
@@ -108,7 +88,7 @@ export default function Form2() {
     null
   );
 
-  useConfirmBeforeUnload(getIsSomeFieldChanged(fieldsChanged));
+  useConfirmBeforeUnload(hasSomeFieldsChanged(fieldsChanged));
 
   // # API Sync
   const queryConstTaskDetail = useQuery({
@@ -124,44 +104,15 @@ export default function Form2() {
     setValues(responseToFormValues(queryConstTaskDetail.data));
   }, [queryConstTaskDetail.data, setValues]);
 
-  const queryAllUsers = useQuery({
-    queryKey: ['AllUsers'],
-    queryFn: () => {
-      return fetchAllUsers;
-    },
-  });
+  const optionUsers = usersToSelectData(allUsers);
 
-  // allUsers がまだ取れてないときはTaskDetailの中身で初期化しとく
-  const optionUsers = useMemo(
-    () =>
-      usersToSelectData(
-        queryAllUsers.data ??
-          [
-            queryConstTaskDetail.data?.user_assingned_to,
-            queryConstTaskDetail.data?.user_verified_by,
-          ].filter(filterFalsy)
-      ),
-    [queryAllUsers.data, queryConstTaskDetail.data]
-  );
+  const optionTaskTemplates = taskTemplatesToSelectData(taskTemplates);
 
-  const queryTaskTemplates = useQuery({
-    queryKey: ['TaskTemplates'],
-    queryFn: () => {
-      return fetchTaskTemplate;
-    },
-  });
-
-  const optionTaskTemplates = useMemo(
-    () => taskTemplatesToSelectData(queryTaskTemplates.data ?? []),
-    [queryTaskTemplates.data]
-  );
-
-  // # イベントハンドラ
   /** テンプレート選択 */
   const onChangeTemplate = useCallback(
     (value: string | null) => {
       setSelectedTemplateId(value);
-      const selectedTemplate = queryTaskTemplates.data?.find(
+      const selectedTemplate = taskTemplates.find(
         (template) => String(template.id) === value
       );
       setValues((values) => {
@@ -171,6 +122,7 @@ export default function Form2() {
           description: selectedTemplate?.description ?? '',
         };
       });
+      // setValues するだけではバリデーションメッセージが出ないので fieldsChanged も更新
       setFieldsChanged((prev) => {
         return {
           ...prev,
@@ -179,16 +131,20 @@ export default function Form2() {
         };
       });
     },
-    [queryTaskTemplates.data, setValues, setFieldsChanged]
+    [setValues, setFieldsChanged]
   );
 
   const onPost = useCallback(() => {
     setIsSubmitted(true);
+
     const isValid = fieldsErrors == null;
+    // フォームがinvalidならAPIはコールしない。
     if (!isValid) {
       alert(`Errors:\n${JSON.stringify(fieldsErrors, null, 2)}`);
       return;
     }
+
+    // フォームがvalidならペイロードに変換してAPIコール
     const payload = formValuesToPayload(values);
     alert(`Submit:\n${JSON.stringify(payload, null, 2)}`);
   }, [values, fieldsErrors]);
@@ -203,9 +159,7 @@ export default function Form2() {
   return (
     <div className="p-20">
       <div className="my-2">タスク編集</div>
-      {queryConstTaskDetail.isLoading ||
-      queryAllUsers.isLoading ||
-      queryTaskTemplates.isLoading ? (
+      {queryConstTaskDetail.isLoading ? (
         <div>Loading...</div>
       ) : (
         <>
@@ -244,26 +198,6 @@ export default function Form2() {
           <div className="my-2">
             <Controller
               control={control}
-              name="description"
-              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                return e.target.value;
-              }}
-              render={({ value, name, isChanged, onChange }) => {
-                return (
-                  <Textarea
-                    label="説明"
-                    value={value}
-                    onChange={onChange}
-                    maxLength={descriptionMaxLength + 1}
-                    error={getErr(isChanged, name)}
-                  />
-                );
-              }}
-            />
-          </div>
-          <div className="my-2">
-            <Controller
-              control={control}
               name="userIdAssingnedTo"
               render={({ value, name, isChanged, onChange }) => {
                 return (
@@ -281,7 +215,6 @@ export default function Form2() {
               }}
             />
           </div>
-
           <div className="my-2">
             <Controller
               control={control}
@@ -360,26 +293,6 @@ export default function Form2() {
               }}
             />
           </div>
-          <div className="my-2">
-            <Controller
-              control={control}
-              name="endCondition"
-              transform={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                return e.currentTarget.value;
-              }}
-              render={({ value, name, isChanged, onChange }) => {
-                return (
-                  <Textarea
-                    label="終了条件"
-                    value={value}
-                    onChange={onChange}
-                    error={getErr(isChanged, name)}
-                    withAsterisk={values.endDate == null}
-                  />
-                );
-              }}
-            />
-          </div>
           <div>
             <Button onClick={onPost}>保存</Button>
           </div>
@@ -394,7 +307,6 @@ export default function Form2() {
 function responseToFormValues(response: TaskDetail): FormValues {
   return {
     title: response.title,
-    description: response.description ?? '',
     userIdAssingnedTo:
       response.user_assingned_to?.id == null
         ? null
@@ -412,14 +324,12 @@ function responseToFormValues(response: TaskDetail): FormValues {
       response.end_date == null
         ? null
         : dayjs(response.end_date, 'YYYY-MM-DD').toDate(),
-    endCondition: response.end_condition ?? '',
   };
 }
 
 function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
   return {
     title: formValues.title,
-    description: formValues.description || null,
     user_id_assingned_to:
       formValues.userIdAssingnedTo == null
         ? null
@@ -436,10 +346,10 @@ function formValuesToPayload(formValues: FormValues): TaskPatchPayload {
       formValues.endDate == null
         ? null
         : dayjs(formValues.endDate).format('YYYY-MM-DD'),
-    end_condition: formValues.endCondition || null,
   };
 }
 
-function getIsSomeFieldChanged(fieldsChanged: Record<string, boolean>) {
+/** changed なフィールドがあるか */
+function hasSomeFieldsChanged(fieldsChanged: Record<string, boolean>) {
   return Object.values(fieldsChanged).some((v) => v);
 }
